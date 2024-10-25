@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adverse Drug Events Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Adverse Drug Events</h1>
+
+     <div id="slider-container">
+        <p id="report-count">1000 reports</p>
+        <input type="range" id="report-slider" min="0" max="1000" value="0" step="2">
+    </div>
+
+    <div id="search-container">
+        <input type="text" id="search-bar" placeholder="Search Medicinal Product">
+    </div>
+
+    <div id="info-panel">
+        <button id="close-panel">X</button>
+        <p id="panel-message">Info-Panel</p>
+        <div id="outcome-colors">
+        </div>
+    </div>
+
+    
+
+    <div id="treemap"></div>
+
+    <div id="navigation-instructions">
+        <p>Scroll to</p>
+        <p>Zoom</p>
+        <p>.</p>
+        <p>Drag to</p>
+        <p>Move</p>
+    </div>
+
+    <div id="timeline-container">
+        <div id="timeline-bar">
+            <div id="selection-rectangle"></div>
+            <p id="time-span-display">0 months</p>
+        </div>
+    </div>
+      
+
+    <div id="info-svg-container">
+        <svg id="info-svg"></svg>
+    </div>
+
+    
+
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
