@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 const _ = window._;
 let originalData = [];
 const margin = { top: 5, right: 10, bottom: 10, left: 10 },
 =======
+=======
+const _ = window._;
+>>>>>>> d2da13c (Report Slider Working)
 const margin = { top: 10, right: 10, bottom: 10, left: 10 },
 >>>>>>> d85a6ad (Adding project files)
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
@@ -59,6 +63,7 @@ let sankeyPaginationState = {
 let currentProductData = null;
 =======
 let groupedData = [];
+let totalReports = 0;
 let currentEnlargedElement = null;
 
 >>>>>>> d85a6ad (Adding project files)
@@ -141,6 +146,7 @@ const reportSlider = document.getElementById("report-slider");
 const reportCount = document.getElementById("report-count");
 
 reportSlider.addEventListener("input", function () {
+<<<<<<< HEAD
 <<<<<<< HEAD
     const value = parseInt(reportSlider.value, 10);
     reportCount.textContent = `${value} reports`;
@@ -232,6 +238,36 @@ function createSegmentGradient(id, color) {
         .attr("y1", "0%")
         .attr("x2", "100%")
         .attr("y2", "0%");
+=======
+    const value = parseInt(reportSlider.value, 10);
+    reportCount.textContent = `${value} reports`;
+    updateTreemapBasedOnReports(value);
+});
+
+function updateTreemapBasedOnReports(reportLimit) {
+    const allReports = _.flatten(_.map(groupedData, country => {
+        return _.flatten(_.map(country.values, product => product.reports));
+    }));
+
+    const limitedReports = _.first(allReports, reportLimit);
+    const groupedByCountry = _.groupBy(limitedReports, 'ReportCountry');
+
+    const limitedData = _.map(groupedByCountry, (reportsByCountry, countryKey) => {
+        const groupedByProduct = _.groupBy(reportsByCountry, 'Medicinalproduct');
+        const products = _.map(groupedByProduct, (reportsByProduct, productKey) => ({
+            key: productKey,
+            value: reportsByProduct.length,
+            reports: reportsByProduct
+        }));
+        return {
+            key: countryKey,
+            values: products
+        };
+    });
+
+    drawTreemap(limitedData);
+}
+>>>>>>> d2da13c (Report Slider Working)
 
     gradient.append("stop")
         .attr("offset", "0%")
@@ -535,8 +571,30 @@ d3.csv("data.csv", function (d, i) {
 
     weeklyReportCounts = computeWeeklyReportCounts(originalData, minDate, maxDate);
 
+<<<<<<< HEAD
     const densityColorScaleLocal = createColorScale(weeklyReportCounts);
     densityColorScale = densityColorScaleLocal;
+=======
+function initializeSlider(maxReports) {
+    const roundedMaxReports = Math.ceil(maxReports / 100) * 100;
+
+    const reportSlider = document.getElementById("report-slider");
+    reportSlider.max = roundedMaxReports;
+    reportSlider.value = roundedMaxReports;
+    reportSlider.step = 100;
+    document.getElementById("report-count").textContent = `${roundedMaxReports} reports`;
+
+    reportSlider.addEventListener("input", function () {
+        const selectedReports = parseInt(reportSlider.value, 10);
+        document.getElementById("report-count").textContent = `${selectedReports} reports`;
+        updateTreemapBasedOnReports(selectedReports);
+    });
+}
+
+function updateVisualizations() {
+    drawTreemap(groupedData);
+}
+>>>>>>> d2da13c (Report Slider Working)
 
     densitySvg = timelineBar.append("svg")
         .attr("width", "100%")
@@ -1436,12 +1494,13 @@ function triggerBeatingForProduct(medicinalProductKey) {
 }
 
 function drawTreemap(data) {
-    d3.select("#treemap").selectAll("*").remove();
+    zoomGroup.selectAll("*").remove();
 
     if (!data || data.length === 0) return;
 
     const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
-        .sum(d => d.reports ? d.reports.length : 0);
+        .sum(d => d.value);
+
 
     const treemap = d3.treemap()
         .size([outerWidth, outerHeight])
@@ -1449,11 +1508,182 @@ function drawTreemap(data) {
         .paddingInner(productMargin)
         .round(true);
 
-    
-    treemap(root);    
+    treemap(root);
+
+    countries = zoomGroup.selectAll(".country")
+        .data(root.children)
+        .enter()
+        .append("g")
+        .attr("class", "country")
+        .attr("transform", d => `translate(${d.x0 + countryMargin},${d.y0 + countryMargin})`);
+
+        countries.append("rect")
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("fill", "#ffffff")
+        .attr("stroke", "#000000")
+        .attr("stroke-width", 1)
+        .on("mouseover", function (event, d) {
+            tooltip.transition()
+                .duration(200)
+                .style("opacity", 1);
+            tooltip.html(`${d.data.key}`)
+                .style("left", `${event.pageX + 5}px`)
+                .style("top", `${event.pageY - 28}px`);
+        })
+        .on("mouseout", () => {
+            tooltip.transition().duration(500).style("opacity", 0);
+        });
+
+    products = countries.selectAll(".product")
+        .data(d => d.children)
+        .enter()
+        .append("g")
+        .attr("class", "product")
+        .attr("transform", d => `translate(${d.x0 - d.parent.x0},${d.y0 - d.parent.y0})`);
+
+    products.append("rect")
+        .attr("class", "product-outer")
+        .attr("width", d => Math.max(0, d.x1 - d.x0))
+        .attr("height", d => Math.max(0, d.y1 - d.y0))
+        .attr("fill", ".product-outer ")
+        .attr("stroke", ".product-outer ")
+        .attr("stroke-width", ".product-outer");
+
+    products.each(function (d) {
+        const productG = d3.select(this);
+        const productRect = productG.select(".product-outer");
+        const productHeight = d.y1 - d.y0;
+        const productWidth = d.x1 - d.x0;
+        const numReports = d.data.reports.length;
+
+        if (numReports > 0) {
+
+            const reportMargin = 0;
+            const availableHeight = Math.max(productHeight - 2 * reportMargin, 0);
+            const availableWidth = Math.max(productWidth - 2 * reportMargin, 0);
+
+            d.data.reports.forEach((report, i) => {
+                const reportG = productG.append("g")
+                    .attr("class", "report");
+
+                const reportX = reportMargin;
+                const reportY = reportMargin + i * (availableHeight / numReports);
+
+                reportG.append("rect")
+                    .attr("x", reportX)
+                    .attr("y", reportY)
+                    .attr("width", availableWidth)
+                    .attr("height", availableHeight / numReports)
+                    .attr("fill", outcomeColors[report.Outcome])
+                    .attr("stroke", outcomeColors[report.Outcome])
+                    .on("mouseover", (event) => {
+                        tooltip.transition()
+                            .duration(200)
+                            .style("opacity", 1);
+                        tooltip.html(`${d.data.key}<br/>${d.value} reports`)
+                            .style("left", `${event.pageX + 5}px`)
+                            .style("top", `${event.pageY - 28}px`);
+                    })
+                    .on("mouseout", () => {
+                        tooltip.transition().duration(500).style("opacity", 0);
+                    })
+                    .on("click", function () {
+                        triggerBeatingForProduct(d.data.key);
+                        d3.select(this).select("rect.product-outer").classed("highlight", true);
+                        showOutcomeColors(d);
+                        showProductInfo(d.data);
+                    });
+            });
+        }
+
+        productRect.on("click", function () {
+        triggerBeatingForProduct(d.data.key);
+    });
+
+    });
+
+    d3.selectAll(".reaction-group polygon").on("click", function (event, d) {
+        const reports = getReportsForShape("Reactions", d.data.key, groupedData);
+        console.log(`Reports for Reaction: ${d.data.key}`, reports);
+        if (reports.length > 0) {
+            toggleBounceAndEnlarge(d3.select(this), reports);
+        } else {
+            console.error("No valid reports found for this shape.");
+        }
+    });
+
+    d3.selectAll(".indication-group rect").on("click", function (event, d) {
+        const reports = getReportsForShape("DrugIndication", d.data.key, groupedData);
+        console.log(`Reports for Indication: ${d.data.key}`, reports);
+        if (reports.length > 0) {
+            toggleBounceAndEnlarge(d3.select(this), reports);
+        } else {
+            console.error("No valid reports found for this shape.");
+        }
+    });
+
+    products.each(function (d) {
+        const productG = d3.select(this);
+        const availableWidth = d.x1 - d.x0;
+        const availableHeight = d.y1 - d.y0;
+
+        const allGenericNames = new Set();
+        const allBrandNames = new Set();
+
+        d.data.reports.forEach(report => {
+            splitBySemicolon(report.GenericName).forEach(name => allGenericNames.add(name));
+            splitBySemicolon(report.BrandName).forEach(name => allBrandNames.add(name));
+        });
+
+        const dotGroup = productG.append("g").attr("class", "dot-group");
+
+        const dotSize = Math.min(availableHeight, availableWidth) / 10;
+        const centerX = availableWidth / 2;
+        const centerY = availableHeight / 2;
+
+        let dotX = centerX, dotY = centerY;
+        let angle = 0, radius = dotSize * 2.5;
+
+        const placeDotsRadially = (names, color) => {
+            names.forEach((name, i) => {
+                if (name) {
+                    const nextX = dotX + radius * Math.cos(angle);
+                    const nextY = dotY + radius * Math.sin(angle);
+
+                    if (nextX - dotSize > 0 && nextX + dotSize < availableWidth &&
+                        nextY - dotSize > 0 && nextY + dotSize < availableHeight) {
+                        dotGroup.append("circle")
+                            .attr("cx", nextX)
+                            .attr("cy", nextY)
+                            .attr("r", dotSize)
+                            .style("fill", color)
+                            .on("mouseover", (event) => {
+                                tooltip.transition()
+                                    .duration(200)
+                                    .style("opacity", 1);
+                                tooltip.html(`${name}`)
+                                    .style("left", `${event.pageX + 5}px`)
+                                    .style("top", `${event.pageY - 28}px`);
+                            })
+                            .on("mouseout", () => {
+                                tooltip.transition().duration(500).style("opacity", 0);
+                            });
+
+                        angle += Math.PI / 2;
+                        if (angle > Math.PI * 2) {
+                            angle = 0;
+                            radius += dotSize * 2.5;
+                        }
+                    }
+                }
+            });
+        };
+
+        placeDotsRadially(allGenericNames, "green");
+        placeDotsRadially(allBrandNames, "blue");
+    });
 }
-
-
 
 function updateReactionsAndIndications(data) {
     d3.select("#info-svg").selectAll("*").remove();
@@ -1856,6 +2086,7 @@ document.getElementById("close-panel").addEventListener("click", function () {
 });
 
 d3.csv("data.csv").then((data) => {
+<<<<<<< HEAD
     const groupedData = groupDataByCountryAndProduct(data);
 
     const root = d3.hierarchy({ key: "World", values: groupedData }, d => d.values)
@@ -3228,6 +3459,13 @@ document.addEventListener("DOMContentLoaded", function() {
         placeDotsRadially(allGenericNames, "green");
         placeDotsRadially(allBrandNames, "blue");
     });
+=======
+    groupedData = groupDataByCountryAndProduct(data);
+    totalReports = data.length;
+
+    initializeSlider(totalReports);
+    drawTreemap(groupedData);
+>>>>>>> d2da13c (Report Slider Working)
 
     document.getElementById('search-bar').addEventListener('input', function () {
         const query = this.value.toLowerCase();
@@ -3248,6 +3486,10 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     });
 
+    document.getElementById('test-button').addEventListener('click', function () {
+        const selectedReports = parseInt(document.getElementById("report-slider").value, 10);
+        updateTreemapBasedOnReports(selectedReports);
+    });    
 
 svg.append("circle")
     .attr("cx", outerWidth / 2 - 50)
@@ -3274,8 +3516,11 @@ svg.append("text")
     .style("font-size", "12px");
 
 
+<<<<<<< HEAD
 groupedData = groupDataByCountryAndProduct(data);
 drawTreemap(groupedData);
 updateVisualizations();
 >>>>>>> d85a6ad (Adding project files)
+=======
+>>>>>>> d2da13c (Report Slider Working)
 });
