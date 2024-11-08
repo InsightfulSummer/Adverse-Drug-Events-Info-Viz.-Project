@@ -11,6 +11,7 @@ let groupedData = [];
 let totalReports = 0;
 let currentEnlargedElement = null;
 let minDate, maxDate;
+//sufy csuyd
 let currentReports = [];
 
 
