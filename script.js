@@ -2,11 +2,15 @@
 <<<<<<< HEAD
 const _ = window._;
 let originalData = [];
+<<<<<<< HEAD
 const margin = { top: 5, right: 10, bottom: 10, left: 10 },
 =======
 =======
 const _ = window._;
 >>>>>>> d2da13c (Report Slider Working)
+=======
+
+>>>>>>> 337e668 (Timeline Slider Updated)
 const margin = { top: 10, right: 10, bottom: 10, left: 10 },
 >>>>>>> d85a6ad (Adding project files)
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
@@ -65,6 +69,7 @@ let currentProductData = null;
 let groupedData = [];
 let totalReports = 0;
 let currentEnlargedElement = null;
+let minDate, maxDate;
 
 >>>>>>> d85a6ad (Adding project files)
 const svg = d3.select("#treemap")
@@ -132,7 +137,6 @@ const predefinedPatientData = [
     { sex: "unknown", age: "not mentioned", weight: "not mentioned" }
 ];
 
-
 const iconContainer = d3.select("body").append("div")
     .attr("class", "icon-container")
     .style("position", "fixed")
@@ -140,8 +144,11 @@ const iconContainer = d3.select("body").append("div")
     .style("left", "0px")
     .style("pointer-events", "none");
 
+<<<<<<< HEAD
 
 >>>>>>> d85a6ad (Adding project files)
+=======
+>>>>>>> 337e668 (Timeline Slider Updated)
 const reportSlider = document.getElementById("report-slider");
 const reportCount = document.getElementById("report-count");
 
@@ -241,30 +248,14 @@ function createSegmentGradient(id, color) {
 =======
     const value = parseInt(reportSlider.value, 10);
     reportCount.textContent = `${value} reports`;
-    updateTreemapBasedOnReports(value);
+    updateTreemap();
 });
 
-function updateTreemapBasedOnReports(reportLimit) {
-    const allReports = _.flatten(_.map(groupedData, country => {
-        return _.flatten(_.map(country.values, product => product.reports));
-    }));
+function updateTreemap() {
+    console.log('Selected Start Date:', selectedStartDate);
+    console.log('Selected End Date:', selectedEndDate);
 
-    const limitedReports = _.first(allReports, reportLimit);
-    const groupedByCountry = _.groupBy(limitedReports, 'ReportCountry');
-
-    const limitedData = _.map(groupedByCountry, (reportsByCountry, countryKey) => {
-        const groupedByProduct = _.groupBy(reportsByCountry, 'Medicinalproduct');
-        const products = _.map(groupedByProduct, (reportsByProduct, productKey) => ({
-            key: productKey,
-            value: reportsByProduct.length,
-            reports: reportsByProduct
-        }));
-        return {
-            key: countryKey,
-            values: products
-        };
-    });
-
+<<<<<<< HEAD
     drawTreemap(limitedData);
 }
 >>>>>>> d2da13c (Report Slider Working)
@@ -534,10 +525,180 @@ d3.csv("data.csv", function (d, i) {
         d.PatientSex = 'female';
     } else {
         d.PatientSex = 'unknown';
+=======
+    const selectedReports = parseInt(reportSlider.value, 10);
+    const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
+    const totalFilteredReports = filteredData.reduce((sum, country) => {
+        return sum + country.values.reduce((countrySum, product) => countrySum + product.value, 0);
+    }, 0);
+
+    console.log('Total Number of Reports after Filtering:', totalFilteredReports);
+
+    drawTreemap(filteredData);
+}
+
+let selectedStartDate, selectedEndDate;
+
+function parseDateString(dateString) {
+    if (!dateString || dateString.length !== 8) return null;
+    var year = parseInt(dateString.substring(0, 4), 10);
+    var month = parseInt(dateString.substring(4, 6), 10);
+    var day = parseInt(dateString.substring(6, 8), 10);
+    if (isNaN(year) || isNaN(month) || isNaN(day)) return null;
+    var date = new Date(year, month - 1, day);
+    date.setHours(0, 0, 0, 0);
+    return date;
+}
+
+d3.csv("data.csv", function(d) {
+    d.StartDate = parseDateString(d.StartDate);
+    d.EndDate = parseDateString(d.EndDate);
+    return d;
+}).then(function(data) {
+
+    originalData = data;
+    const allStartDates = data.map(d => d.StartDate).filter(d => d != null);
+    const allEndDates = data.map(d => d.EndDate).filter(d => d != null);
+    minDate = d3.min(allStartDates);
+    maxDate = d3.max(allEndDates);
+
+    minDate.setHours(0, 0, 0, 0);
+    maxDate.setHours(23, 59, 59, 999);
+
+    selectedStartDate = minDate;
+    selectedEndDate = maxDate;
+
+    groupedData = groupDataByCountryAndProduct(data);
+    totalReports = data.length;
+
+    initializeSlider(totalReports);
+    initializeDateRangeSlider();
+    updateTreemap();
+
+
+    document.getElementById('search-bar').addEventListener('input', function () {
+        const query = this.value.toLowerCase();
+        stopAllBeating();
+
+        d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
+
+        if (query) {
+            d3.selectAll(".product").each(function (d) {
+                const productName = d.data.key.toLowerCase();
+                const countryName = d.parent.data.key.toLowerCase();
+
+                if (productName.includes(query) || countryName.includes(query)) {
+                    const productRect = d3.select(this).select(".product-outer");
+                    productRect.classed("highlight", true).classed("beating", true);
+                }
+            });
+        }
+    });
+});
+
+function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDate, selectedEndDate) {
+    const limitedReports = data.slice(0, reportLimit);
+    const filteredReports = limitedReports.filter(report => {
+        const reportStartDate = report.StartDate;
+        const reportEndDate = report.EndDate;
+        const startDateValid = !reportStartDate || reportStartDate >= selectedStartDate;
+        const endDateValid = !reportEndDate || reportEndDate <= selectedEndDate;
+
+        return startDateValid && endDateValid;
+    });
+    const groupedData = groupDataByCountryAndProduct(filteredReports);
+    return groupedData;
+}
+
+
+
+function initializeDateRangeSlider() {
+    const timelineBar = document.getElementById('timeline-bar');
+    const leftHandle = document.createElement('div');
+    const rightHandle = document.createElement('div');
+    const selectedRange = document.createElement('div');
+    const leftDateDisplay = document.createElement('div');
+    const rightDateDisplay = document.createElement('div');
+
+    leftHandle.id = 'left-handle';
+    rightHandle.id = 'right-handle';
+    selectedRange.id = 'selected-range';
+    leftDateDisplay.id = 'left-date-display';
+    rightDateDisplay.id = 'right-date-display';
+
+    leftHandle.className = 'handle';
+    rightHandle.className = 'handle';
+    leftDateDisplay.className = 'date-display';
+    rightDateDisplay.className = 'date-display';
+
+    timelineBar.appendChild(selectedRange);
+    timelineBar.appendChild(leftHandle);
+    timelineBar.appendChild(rightHandle);
+    timelineBar.appendChild(leftDateDisplay);
+    timelineBar.appendChild(rightDateDisplay);
+
+    const timelineWidth = timelineBar.offsetWidth;
+    leftHandle.style.left = '0px';
+    rightHandle.style.left = (timelineWidth - rightHandle.offsetWidth) + 'px';
+
+    updateSelectedRange();
+
+    let activeHandle = null;
+    let startX = 0;
+    let handleStartX = 0;
+
+    leftHandle.addEventListener('mousedown', (e) => {
+        activeHandle = leftHandle;
+        startX = e.clientX;
+        handleStartX = parseInt(leftHandle.style.left);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    });
+
+    rightHandle.addEventListener('mousedown', (e) => {
+        activeHandle = rightHandle;
+        startX = e.clientX;
+        handleStartX = parseInt(rightHandle.style.left);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    });
+
+    function handleMouseMove(e) {
+        if (!activeHandle) return;
+        const deltaX = e.clientX - startX;
+        let newLeft = handleStartX + deltaX;
+
+        if (newLeft < 0) newLeft = 0;
+        if (newLeft > timelineWidth - activeHandle.offsetWidth) newLeft = timelineWidth - activeHandle.offsetWidth;
+
+        if (activeHandle === leftHandle) {
+            const rightHandleLeft = parseInt(rightHandle.style.left);
+            if (newLeft > rightHandleLeft - activeHandle.offsetWidth) {
+                newLeft = rightHandleLeft - activeHandle.offsetWidth;
+            }
+        } else if (activeHandle === rightHandle) {
+            const leftHandleLeft = parseInt(leftHandle.style.left);
+            if (newLeft < leftHandleLeft + leftHandle.offsetWidth) {
+                newLeft = leftHandleLeft + activeHandle.offsetWidth;
+            }
+        }
+
+        activeHandle.style.left = newLeft + 'px';
+
+        updateSelectedRange();
+    }
+
+    function handleMouseUp(e) {
+        activeHandle = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        updateTreemap();
+>>>>>>> 337e668 (Timeline Slider Updated)
     }
     d.PatientAge = d.PatientAge || 'unknown';
     d.PatientWeight = d.PatientWeight || 'unknown';
 
+<<<<<<< HEAD
     d.Outcome = d.Outcome.trim();
     if (!outcomeColors.hasOwnProperty(d.Outcome)) {
         d.Outcome = "Other";
@@ -568,6 +729,49 @@ d3.csv("data.csv", function (d, i) {
     initializeDateRangeSlider();
     drawLegend();
     updateTreemap();
+=======
+    function updateSelectedRange() {
+        const leftHandleLeft = parseInt(leftHandle.style.left);
+        const rightHandleLeft = parseInt(rightHandle.style.left);
+
+        const rangeLeft = leftHandleLeft + leftHandle.offsetWidth / 2;
+        const rangeWidth = rightHandleLeft + rightHandle.offsetWidth / 2 - rangeLeft;
+
+        selectedRange.style.left = rangeLeft + 'px';
+        selectedRange.style.width = rangeWidth + 'px';
+
+        const startDate = calculateDateFromX(rangeLeft);
+        const endDate = calculateDateFromX(rangeLeft + rangeWidth);
+
+        leftDateDisplay.textContent = formatDate(startDate);
+        rightDateDisplay.textContent = formatDate(endDate);
+
+        leftDateDisplay.style.left = (rangeLeft - leftDateDisplay.offsetWidth / 2) + 'px';
+        rightDateDisplay.style.left = (rangeLeft + rangeWidth - rightDateDisplay.offsetWidth / 2) + 'px';
+
+        selectedStartDate = startDate;
+        selectedEndDate = endDate;
+
+        selectedStartDate.setHours(0, 0, 0, 0);
+        selectedEndDate.setHours(0, 0, 0, 0);
+    }
+
+    function calculateDateFromX(x) {
+        const percentage = x / timelineWidth;
+        const timeDiff = maxDate - minDate;
+        const date = new Date(minDate.getTime() + percentage * timeDiff);
+        date.setHours(0, 0, 0, 0);
+        return date;
+    }
+
+    function formatDate(date) {
+        const day = ('0' + date.getDate()).slice(-2);
+        const month = ('0' + (date.getMonth() + 1)).slice(-2);
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+}
+>>>>>>> 337e668 (Timeline Slider Updated)
 
     weeklyReportCounts = computeWeeklyReportCounts(originalData, minDate, maxDate);
 
@@ -583,16 +787,11 @@ function initializeSlider(maxReports) {
     reportSlider.value = roundedMaxReports;
     reportSlider.step = 100;
     document.getElementById("report-count").textContent = `${roundedMaxReports} reports`;
-
-    reportSlider.addEventListener("input", function () {
-        const selectedReports = parseInt(reportSlider.value, 10);
-        document.getElementById("report-count").textContent = `${selectedReports} reports`;
-        updateTreemapBasedOnReports(selectedReports);
-    });
 }
 
 function updateVisualizations() {
-    drawTreemap(groupedData);
+    updateTreemap();
+
 }
 >>>>>>> d2da13c (Report Slider Working)
 
@@ -3464,8 +3663,13 @@ document.addEventListener("DOMContentLoaded", function() {
     totalReports = data.length;
 
     initializeSlider(totalReports);
+<<<<<<< HEAD
     drawTreemap(groupedData);
 >>>>>>> d2da13c (Report Slider Working)
+=======
+    updateTreemap();
+
+>>>>>>> 337e668 (Timeline Slider Updated)
 
     document.getElementById('search-bar').addEventListener('input', function () {
         const query = this.value.toLowerCase();
@@ -3484,11 +3688,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             });
         }
-    });
-
-    document.getElementById('test-button').addEventListener('click', function () {
-        const selectedReports = parseInt(document.getElementById("report-slider").value, 10);
-        updateTreemapBasedOnReports(selectedReports);
     });    
 
 svg.append("circle")
