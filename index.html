@@ -5,13 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Adverse Drug Events Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    
 </head>
 <body>
     <h1>Adverse Drug Events</h1>
 
      <div id="slider-container">
         <p id="report-count">1000 reports</p>
-        <input type="range" id="report-slider" min="0" max="1000" value="0" step="2">
+        <input type="range" id="report-slider" min="0" max="1000" value="0" step="100">
+        
     </div>
 
     <div id="search-container">
@@ -23,9 +27,7 @@
         <p id="panel-message">Info-Panel</p>
         <div id="outcome-colors">
         </div>
-    </div>
-
-    
+    </div>    
 
     <div id="treemap"></div>
 
@@ -39,19 +41,20 @@
 
     <div id="timeline-container">
         <div id="timeline-bar">
-            <div id="selection-rectangle"></div>
-            <p id="time-span-display">0 months</p>
+            <div id="left-handle" class="handle"></div>
+            <div id="right-handle" class="handle"></div>
+            <div id="selected-range"></div>
+            <div id="left-date-display" class="date-display"></div>
+            <div id="right-date-display" class="date-display"></div>
         </div>
     </div>
+    
       
 
     <div id="info-svg-container">
         <svg id="info-svg"></svg>
     </div>
 
-    
-
-    <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
