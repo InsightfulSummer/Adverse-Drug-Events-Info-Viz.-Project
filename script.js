@@ -633,7 +633,8 @@ function drawTreemap(data) {
     if (!data || data.length === 0) return;
 
     const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
-        .sum(d => d.value);
+    .sum(d => d.value)
+    .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
 
     const treemap = d3.treemap()
@@ -668,6 +669,16 @@ function drawTreemap(data) {
         .on("mouseout", () => {
             tooltip.transition().duration(500).style("opacity", 0);
         });
+        countries.append("text")
+        .attr("x", function(d) {
+            return (d.x1 - d.x0) / 2;
+        })
+        .attr("y", -5)
+        .text(function(d) {
+            return d.data.key;
+        })
+        .attr("font-size", "8px")
+        .attr("text-anchor", "middle");
 
     products = countries.selectAll(".product")
         .data(d => d.children)
