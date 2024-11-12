@@ -1149,23 +1149,37 @@ function drawAlphabeticalShapes(
     const shapeSize = 40;
     let rowY = 50;
     const itemsGroupedByLetter = d3.group(items, d => d.charAt(0).toUpperCase());
+
     itemsGroupedByLetter.forEach((itemsForLetter, letter) => {
         let rowX = 0;
         let shapesInCurrentRow = 0;
+        let newRow = true;
 
         itemsForLetter.forEach((item, index) => {
             if (shapesInCurrentRow >= maxShapesPerRow) {
                 rowY += rowHeight;
                 rowX = 0;
                 shapesInCurrentRow = 0;
+                newRow = true;
             }
+
+            if (newRow) {
+                group.append("text")
+                    .attr("x", xOffset - 20)
+                    .attr("y", rowY + shapeSize / 2 + 5)
+                    .text(letter)
+                    .attr("font-size", "12px")
+                    .attr("fill", "#888");
+                newRow = false;
+            }
+
             const globalCount = globalCounts[item] || 0;
             const productCount = counts[item] || 0;
             const color = colorScale(globalCount);
 
             if (type === "Indication") {
                 const indicationShape = group.append("rect")
-                    .attr("x", xOffset + rowX * shapeSize + rowX * 10)
+                    .attr("x", xOffset + rowX * (shapeSize + 10))
                     .attr("y", rowY)
                     .attr("width", shapeSize)
                     .attr("height", shapeSize)
@@ -1176,13 +1190,17 @@ function drawAlphabeticalShapes(
                     .on("mouseover", (event) => showTooltip(event, item, productCount, globalCount))
                     .on("mouseout", hideTooltip)
                     .on("click", function () {
-                        onShapeClick(item, "DrugIndication", productData, indicationShape.node());
+                        onShapeClick(item, "DrugIndication", productData, this);
                     });
 
                 linkedShapes.push([indicationShape.node()]);
             } else if (type === "Reaction") {
                 const reactionShape = group.append("polygon")
-                    .attr("points", hexagonPoints(xOffset + rowX * shapeSize + rowX * 10, rowY + 20, 20))
+                    .attr("points", hexagonPoints(
+                        xOffset + rowX * (shapeSize + 10) + shapeSize / 2,
+                        rowY + shapeSize / 2,
+                        shapeSize / 2
+                    ))
                     .attr("fill", color)
                     .attr("stroke", "darkred")
                     .attr("stroke-width", 4)
@@ -1190,7 +1208,7 @@ function drawAlphabeticalShapes(
                     .on("mouseover", (event) => showTooltip(event, item, productCount, globalCount))
                     .on("mouseout", hideTooltip)
                     .on("click", function () {
-                        onShapeClick(item, "Reactions", productData, reactionShape.node());
+                        onShapeClick(item, "Reactions", productData, this);
                     });
 
                 linkedShapes.push([reactionShape.node()]);
@@ -1203,6 +1221,7 @@ function drawAlphabeticalShapes(
         rowY += rowHeight;
     });
 }
+
 
 function showTooltip(event, item, productCount, globalCount) {
     tooltip.transition()
