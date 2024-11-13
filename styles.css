@@ -15,14 +15,13 @@ body {
     align-items: center;
 }
 
-
 h1 {
     margin-top: 20px;
 }
 
 #treemap {
     overflow: visible;
-    width: 90vw;
+    width: 80vw;
     height: 80vh;
     margin: 20px;
 }
@@ -74,14 +73,14 @@ h1 {
 
 #search-container {
     position: absolute;
-    top: 150px;
-    right: 80px;
+    top: 200px;
+    right: 20px;
     display: flex;
     align-items: center;
 }
 
 #search-bar {
-    width: 200px;
+    width: 100px;
     padding: 5px;
     font-size: 14px;
     border: 1px solid #cccccc;
@@ -161,16 +160,6 @@ h1 {
     transition: transform 0.3s ease;
 }
 
-.red-hexagon {
-    transform-origin: 50% 0%;
-    transform: scale(2);
-}
-
-.green-square {
-    transform-origin: 0% 0%;
-    transform: scale(2);
-}
-
 .bouncing {
     animation: bounce 1s infinite;
 }
@@ -180,7 +169,6 @@ h1 {
     20% { transform: translateY(-5px); }
     50% { transform: translateY(-15px); }
     100% { transform: translateY(0px); }
-    
 }
 
 .faded {
@@ -229,7 +217,6 @@ h1 {
     border-radius: 50%;
     cursor: pointer;
 }
-
 
 #timeline-container {
     width: 100%;
@@ -297,35 +284,9 @@ h1 {
     right: 0;
 }
 
-.magic-lens {
-    position: fixed;
-    cursor: move;
-    z-index: 1000;
+#sankey-container {
+    align-items: center;
+    width: 80%;
+    height: fit-content;
+    overflow: auto;
 }
-
-.magic-lens img {
-    width: 50px;
-    height: 50px;
-}
-
-.dosage-tooltip {
-    position: absolute;
-    top: 100%; /* Position below the magic lens */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 200px;
-    font-size: 12px;
-    color: #333;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    z-index: 1001;
-    pointer-events: none;
-    opacity: 0; /* Start hidden */
-    transition: opacity 0.2s ease-in-out; /* Smooth transition */
-}
-
-
-

@@ -9,11 +9,10 @@ const margin = { top: 10, right: 10, bottom: 10, left: 10 },
 
 let groupedData = [];
 let totalReports = 0;
-let currentEnlargedElement = null;
 let minDate, maxDate;
-//sufy csuyd
+let selectedStartDate, selectedEndDate;
+let currentEnlargedElement = null;
 let currentReports = [];
-
 
 const svg = d3.select("#treemap")
     .append("svg")
@@ -46,24 +45,6 @@ const outcomeColors = {
     "Other": "#9ffff5"
 };
 
-let globalIndicationCounts = {};
-let globalReactionCounts = {};
-
-function calculateGlobalCounts(data) {
-    data.forEach(report => {
-        splitBySemicolon(report.DrugIndication).forEach(indication => {
-            if (indication) {
-                globalIndicationCounts[indication] = (globalIndicationCounts[indication] || 0) + 1;
-            }
-        });
-        splitBySemicolon(report.Reactions).forEach(reaction => {
-            if (reaction) {
-                globalReactionCounts[reaction] = (globalReactionCounts[reaction] || 0) + 1;
-            }
-        });
-    });
-}
-
 function createGradient(id, color) {
     const defs = svg.append("defs");
     const gradient = defs.append("linearGradient")
@@ -86,19 +67,6 @@ Object.keys(outcomeColors).forEach(outcome => {
     createGradient(outcome + "-gradient", outcomeColors[outcome]);
 });
 
-const predefinedPatientData = [
-    { sex: "male", age: 23, weight: 89 },
-    { sex: "female", age: 56, weight: 44 },
-    { sex: "unknown", age: "not mentioned", weight: "not mentioned" }
-];
-
-const iconContainer = d3.select("body").append("div")
-    .attr("class", "icon-container")
-    .style("position", "fixed")
-    .style("top", "0px")
-    .style("left", "0px")
-    .style("pointer-events", "none");
-
 const reportSlider = document.getElementById("report-slider");
 const reportCount = document.getElementById("report-count");
 
@@ -111,16 +79,8 @@ reportSlider.addEventListener("input", function () {
 function updateTreemap() {
     const selectedReports = parseInt(reportSlider.value, 10);
     const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
-    const totalFilteredReports = filteredData.reduce((sum, country) => {
-        return sum + country.values.reduce((countrySum, product) => countrySum + product.value, 0);
-    }, 0);
-
-    console.log('Total Number of Reports after Filtering:', totalFilteredReports);
-
     drawTreemap(filteredData);
 }
-
-let selectedStartDate, selectedEndDate;
 
 function parseDateString(dateString) {
     if (!dateString || dateString.length !== 8) return null;
@@ -147,11 +107,15 @@ d3.csv("data.csv", function(d) {
     d.PatientAge = d.PatientAge || 'unknown';
     d.PatientWeight = d.PatientWeight || 'unknown';
 
+    d.Outcome = d.Outcome.trim();
+    if (!outcomeColors.hasOwnProperty(d.Outcome)) {
+        d.Outcome = "Other";
+    }
+
     return d;
 }).then(function(data) {
 
     originalData = data;
-    calculateGlobalCounts(data);
     const allStartDates = data.map(d => d.StartDate).filter(d => d != null);
     const allEndDates = data.map(d => d.EndDate).filter(d => d != null);
     minDate = d3.min(allStartDates);
@@ -169,7 +133,6 @@ d3.csv("data.csv", function(d) {
     initializeSlider(totalReports);
     initializeDateRangeSlider();
     updateTreemap();
-
 
     document.getElementById('search-bar').addEventListener('input', function () {
         const query = this.value.toLowerCase();
@@ -329,7 +292,6 @@ function initializeDateRangeSlider() {
         date.setHours(0, 0, 0, 0);
         return date;
     }
-    
 }
 
 function groupDataByCountryAndProduct(data) {
@@ -353,289 +315,14 @@ function initializeSlider(maxReports) {
     document.getElementById("report-count").textContent = `${roundedMaxReports} reports`;
 }
 
-function updateVisualizations() {
-    updateTreemap();
-
-}
-
-function togglePatientInfoIcons(shapeElement, reports) {
-    const isIconVisible = shapeElement.classed("icons-visible");
-
-    if (isIconVisible) {
-        d3.selectAll(".patient-info-icon").remove();
-        shapeElement.classed("icons-visible", false);
-        restoreBackground();
-        shapeElement.classed("enlarged", false).attr("transform", null);
-        currentEnlargedElement = null;
-    } else {
-        d3.selectAll(".patient-info-icon").remove();
-
-        const bbox = shapeElement.node().getBoundingClientRect();
-        const centerX = bbox.left + bbox.width / 2;
-        const centerY = bbox.top + bbox.height / 2;
-        const iconRadius = Math.max(bbox.width, bbox.height) / 2 + 100;
-        const maxReportsToShow = 20;
-        const reportsToShow = reports.slice(0, maxReportsToShow);
-        currentReports = reportsToShow;
-        const totalIcons = reportsToShow.length * 3;
-        const angleStep = (Math.PI * 2) / totalIcons;
-
-        reportsToShow.forEach((report, i) => {
-            const patientInfo = {
-                sex: report.PatientSex || 'unknown',
-                age: report.PatientAge || 'unknown',
-                weight: report.PatientWeight || 'unknown'
-            };
-
-            const icons = [
-                { type: "Sex", file: getIconFileForSex(patientInfo.sex), value: patientInfo.sex, report },
-                { type: "Age", file: getIconFileForAge(patientInfo.age), value: patientInfo.age, report },
-                { type: "Weight", file: getIconFileForWeight(patientInfo.weight), value: patientInfo.weight, report }
-            ];
-
-            icons.forEach((icon, j) => {
-                const angle = angleStep * (i * 3 + j);
-                const x = centerX + iconRadius * Math.cos(angle);
-                const y = centerY + iconRadius * Math.sin(angle);
-
-                const img = document.createElement('img');
-                img.src = icon.file;
-                img.className = 'patient-info-icon';
-                img.style.position = 'fixed';
-                img.style.left = `${x - 15}px`;
-                img.style.top = `${y - 15}px`;
-                img.style.width = '30px';
-                img.style.height = '30px';
-                img.style.zIndex = 10;
-
-                img.dataset.reportIndex = i;
-                img.addEventListener('mouseover', function(event) {
-                    tooltip.transition()
-                        .duration(200)
-                        .style("opacity", 1);
-                    tooltip.html(`${icon.type}: ${icon.value}`)
-                        .style("left", `${event.pageX + 5}px`)
-                        .style("top", `${event.pageY - 28}px`);
-                });
-
-                img.addEventListener('mouseout', function() {
-                    tooltip.transition().duration(500).style("opacity", 0);
-                });
-
-                document.body.appendChild(img);
-            });
-        });
-
-        shapeElement.classed("icons-visible", true);
-    }
-}
-
-function getIconFileForSex(sex) {
-    if (sex.toLowerCase() === 'male') {
-        return 'male.png';
-    } else if (sex.toLowerCase() === 'female') {
-        return 'female.png';
-    } else {
-        return 'unknown.png';
-    }
-}
-
-function getIconFileForAge(age) {
-    if (age !== 'unknown' && age.trim() !== '') {
-        return 'age.png';
-    } else {
-        return 'unknown.png';
-    }
-}
-
-function getIconFileForWeight(weight) {
-    if (weight !== 'unknown' && weight.trim() !== '') {
-        return 'weight.png';
-    } else {
-        return 'unknown.png';
-    }
-}
-let magicLensActive = false;
-let magicLens = null;
-
-function createMagicLens() {
-    if (d3.select(".magic-lens").empty()) {
-        const magicLens = d3.select("body")
-            .append("div")
-            .attr("class", "magic-lens")
-            .style("position", "fixed")
-            .style("left", "20px")
-            .style("bottom", "20px")
-            .style("cursor", "move")
-            .style("z-index", "1000");
-
-        magicLens.call(makeDraggable);
-        magicLens.html("");
-        magicLens.append("img")
-            .attr("src", "search.png")
-            .style("width", "50px")
-            .style("height", "50px");
-
-        const dosageTooltip = magicLens.append("div")
-            .attr("class", "dosage-tooltip")
-            .style("position", "absolute")
-            .style("top", "50%")
-            .style("left", "50%")
-            .style("transform", "translateX(-50%)")
-            .style("opacity", 0)
-            .style("pointer-events", "none");
-
-        checkOverlapWithIcons(magicLens, dosageTooltip);
-    }
-}
-
-function checkOverlapWithIcons(magicLens, dosageTooltip) {
-    const checkOverlap = () => {
-        let isOverIcon = false;
-
-        d3.selectAll('.patient-info-icon').each(function() {
-            const iconElement = this;
-            const lensRect = magicLens.node().getBoundingClientRect();
-            const iconRect = iconElement.getBoundingClientRect();
-
-            const lensCenterX = lensRect.left + lensRect.width / 2;
-            const lensCenterY = lensRect.top + lensRect.height / 2;
-            const iconCenterX = iconRect.left + iconRect.width / 2;
-            const iconCenterY = iconRect.top + iconRect.height / 2;
-
-            const distance = Math.hypot(lensCenterX - iconCenterX, lensCenterY - iconCenterY);
-
-            const tolerance = 50;
-
-            if (distance < tolerance) {
-                const reportIndex = parseInt(iconElement.dataset.reportIndex, 10);
-                const report = currentReports[reportIndex];
-
-
-                const dosageInfo = formatDosageInfo(report);
-
-                dosageTooltip.html(dosageInfo)
-                    .style("opacity", 1);
-
-                isOverIcon = true;
-            }
-        });
-
-        if (!isOverIcon) {
-            dosageTooltip.style("opacity", 0);
-        }
-
-        requestAnimationFrame(checkOverlap);
-    };
-
-    requestAnimationFrame(checkOverlap);
-}
-
-function formatDosageInfo(report) {
-    let text = "The patient";
-    const productName = report.Medicinalproduct || '';
-    if (productName) {
-        text += ` took ${productName}`;
-    } else {
-        text += ` took a medicinal product`;
-    }
-    const dosage = report.DosageText || '';
-    if (dosage) {
-        text += ` with ${dosage}`;
-    }
-
-    const treatmentDuration = report.TreatmentDuration || '';
-    if (treatmentDuration) {
-        text += ` for ${treatmentDuration} days`;
-    }
-
-    const startDate = report.StartDate ? formatDate(report.StartDate) : '';
-    const endDate = report.EndDate ? formatDate(report.EndDate) : '';
-
-    if (startDate && endDate) {
-        text += ` from ${startDate} to ${endDate}`;
-    } else if (startDate) {
-        text += ` starting from ${startDate}`;
-    } else if (endDate) {
-        text += ` until ${endDate}`;
-    }
-
-    text += '.';
-
-    return text;
-}
-
-function getIconCenter(iconElement) {
-    const rect = iconElement.getBoundingClientRect();
-    return {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-    };
-}
-
-function getLensCenter(magicLens) {
-    const rect = magicLens.node().getBoundingClientRect();
-    return {
-        x: rect.left + rect.width / 2,
-        y: rect.top + rect.height / 2
-    };
-}
-
-function makeDraggable(selection) {
-    let isDragging = false;
-    let offsetX, offsetY;
-
-    selection
-        .on("mousedown", function (event) {
-            event.preventDefault();
-            isDragging = true;
-            offsetX = event.clientX - parseInt(d3.select(this).style("left"));
-            offsetY = event.clientY - parseInt(d3.select(this).style("top"));
-            d3.select(window)
-                .on("mousemove.drag", mousemove)
-                .on("mouseup.drag", mouseup);
-        });
-
-    function mousemove(event) {
-        if (isDragging) {
-            selection
-                .style("left", `${event.clientX - offsetX}px`)
-                .style("top", `${event.clientY - offsetY}px`);
-        }
-    }
-
-    function mouseup() {
-        isDragging = false;
-        d3.select(window)
-            .on("mousemove.drag", null)
-            .on("mouseup.drag", null);
-    }
-}
-
-function resetLensAndVisualization() {
-    d3.select(".magic-lens").remove();
-}
-
-function triggerBeatingForProduct(medicinalProductKey) {
-    stopAllBeating();
-
-    d3.selectAll(".product").each(function(d) {
-        if (d.data.key === medicinalProductKey) {
-            const productRect = d3.select(this).select(".product-outer");
-            productRect.classed("beating", true);
-        }
-    });
-}
-
 function drawTreemap(data) {
     zoomGroup.selectAll("*").remove();
 
     if (!data || data.length === 0) return;
 
     const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
-    .sum(d => d.value)
-    .sort((a, b) => d3.ascending(a.data.key, b.data.key));
-
+        .sum(d => d.value)
+        .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
     const treemap = d3.treemap()
         .size([outerWidth, outerHeight])
@@ -645,19 +332,19 @@ function drawTreemap(data) {
 
     treemap(root);
 
-    countries = zoomGroup.selectAll(".country")
+    const countries = zoomGroup.selectAll(".country")
         .data(root.children)
         .enter()
         .append("g")
         .attr("class", "country")
         .attr("transform", d => `translate(${d.x0 + countryMargin},${d.y0 + countryMargin})`);
 
-        countries.append("rect")
+    countries.append("rect")
         .attr("width", d => d.x1 - d.x0)
         .attr("height", d => d.y1 - d.y0)
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 1)
+        .attr("stroke-width", 2)
         .on("mouseover", function (event, d) {
             tooltip.transition()
                 .duration(200)
@@ -669,7 +356,8 @@ function drawTreemap(data) {
         .on("mouseout", () => {
             tooltip.transition().duration(500).style("opacity", 0);
         });
-        countries.append("text")
+
+    countries.append("text")
         .attr("x", function(d) {
             return (d.x1 - d.x0) / 2;
         })
@@ -680,7 +368,7 @@ function drawTreemap(data) {
         .attr("font-size", "8px")
         .attr("text-anchor", "middle");
 
-    products = countries.selectAll(".product")
+    const products = countries.selectAll(".product")
         .data(d => d.children)
         .enter()
         .append("g")
@@ -691,9 +379,14 @@ function drawTreemap(data) {
         .attr("class", "product-outer")
         .attr("width", d => Math.max(0, d.x1 - d.x0))
         .attr("height", d => Math.max(0, d.y1 - d.y0))
-        .attr("fill", ".product-outer ")
-        .attr("stroke", ".product-outer ")
-        .attr("stroke-width", ".product-outer");
+        .attr("fill", "#ffffff")
+        .attr("stroke", "#000000")
+        .attr("stroke-width", 0)
+        .on("click", function (event, d) {
+            stopAllBeating();
+            triggerBeatingForProduct(d.data.key);
+            showProductInfo(d.data);
+        });
 
     products.each(function (d) {
         const productG = d3.select(this);
@@ -703,73 +396,36 @@ function drawTreemap(data) {
         const numReports = d.data.reports.length;
 
         if (numReports > 0) {
+            const maxReportsToShow = Math.min(numReports, 5);
+            const reportHeight = productHeight / maxReportsToShow;
 
-            const reportMargin = 0;
-            const availableHeight = Math.max(productHeight - 2 * reportMargin, 0);
-            const availableWidth = Math.max(productWidth - 2 * reportMargin, 0);
-
-            d.data.reports.forEach((report, i) => {
-                const reportG = productG.append("g")
-                    .attr("class", "report");
-
-                const reportX = reportMargin;
-                const reportY = reportMargin + i * (availableHeight / numReports);
-
-                reportG.append("rect")
-                    .attr("x", reportX)
-                    .attr("y", reportY)
-                    .attr("width", availableWidth)
-                    .attr("height", availableHeight / numReports)
-                    .attr("fill", outcomeColors[report.Outcome])
-                    .attr("stroke", outcomeColors[report.Outcome])
-                    .on("mouseover", (event) => {
+            d.data.reports.slice(0, maxReportsToShow).forEach((report, i) => {
+                productG.append("rect")
+                    .attr("x", 0)
+                    .attr("y", i * reportHeight)
+                    .attr("width", productWidth)
+                    .attr("height", reportHeight)
+                    .attr("fill", outcomeColors[report.Outcome] || "#ccc")
+                    .attr("stroke", outcomeColors[report.Outcome] || "#ccc")
+                    .attr("stroke-width", 2)
+                    .on("mouseover", function(event) {
                         tooltip.transition()
                             .duration(200)
                             .style("opacity", 1);
-                        tooltip.html(`${d.data.key}<br/>${d.value} reports`)
+                        tooltip.html(`${d.data.key} - ${report.Outcome}`)
                             .style("left", `${event.pageX + 5}px`)
                             .style("top", `${event.pageY - 28}px`);
                     })
-                    .on("mouseout", () => {
+                    .on("mouseout", function() {
                         tooltip.transition().duration(500).style("opacity", 0);
                     })
-                    .on("click", function () {
+                    .on("click", function() {
+                        stopAllBeating();
                         triggerBeatingForProduct(d.data.key);
-                        d3.select(this).select("rect.product-outer").classed("highlight", true);
-                        showOutcomeColors(d);
                         showProductInfo(d.data);
                     });
             });
         }
-
-        productRect.on("click", function () {
-        triggerBeatingForProduct(d.data.key);
-    });
-
-    });
-
-    d3.selectAll(".reaction-group polygon").on("click", function (event, d) {
-        const reports = getReportsForShape("Reactions", d.data.key, groupedData);
-        if (reports.length > 0) {
-            toggleBounceAndEnlarge(d3.select(this), reports);
-        } else {
-            console.error("No valid reports found for this shape.");
-        }
-    });
-
-    d3.selectAll(".indication-group rect").on("click", function (event, d) {
-        const reports = getReportsForShape("DrugIndication", d.data.key, groupedData);
-        if (reports.length > 0) {
-            toggleBounceAndEnlarge(d3.select(this), reports);
-        } else {
-            console.error("No valid reports found for this shape.");
-        }
-    });
-
-    products.each(function (d) {
-        const productG = d3.select(this);
-        const availableWidth = d.x1 - d.x0;
-        const availableHeight = d.y1 - d.y0;
 
         const allGenericNames = new Set();
         const allBrandNames = new Set();
@@ -781,21 +437,21 @@ function drawTreemap(data) {
 
         const dotGroup = productG.append("g").attr("class", "dot-group");
 
-        const dotSize = Math.min(availableHeight, availableWidth) / 10;
-        const centerX = availableWidth / 2;
-        const centerY = availableHeight / 2;
+        const dotSize = Math.min(productHeight, productWidth) / 10;
+        const centerX = productWidth / 2;
+        const centerY = productHeight / 2;
 
-        let dotX = centerX, dotY = centerY;
-        let angle = 0, radius = dotSize * 2.5;
+        let angle = 0;
+        let radius = dotSize * 2.5;
 
         const placeDotsRadially = (names, color) => {
             names.forEach((name, i) => {
                 if (name) {
-                    const nextX = dotX + radius * Math.cos(angle);
-                    const nextY = dotY + radius * Math.sin(angle);
+                    const nextX = centerX + radius * Math.cos(angle);
+                    const nextY = centerY + radius * Math.sin(angle);
 
-                    if (nextX - dotSize > 0 && nextX + dotSize < availableWidth &&
-                        nextY - dotSize > 0 && nextY + dotSize < availableHeight) {
+                    if (nextX - dotSize > 0 && nextX + dotSize < productWidth &&
+                        nextY - dotSize > 0 && nextY + dotSize < productHeight) {
                         dotGroup.append("circle")
                             .attr("cx", nextX)
                             .attr("cy", nextY)
@@ -814,7 +470,7 @@ function drawTreemap(data) {
                             });
 
                         angle += Math.PI / 2;
-                        if (angle > Math.PI * 2) {
+                        if (angle >= Math.PI * 2) {
                             angle = 0;
                             radius += dotSize * 2.5;
                         }
@@ -823,251 +479,90 @@ function drawTreemap(data) {
             });
         };
 
-        placeDotsRadially(allGenericNames, "green");
-        placeDotsRadially(allBrandNames, "blue");
-    });
-}
-
-function updateReactionsAndIndications(data) {
-    d3.select("#info-svg").selectAll("*").remove();
-
-    const infoWidth = document.getElementById("info-svg").clientWidth;
-    const infoHeight = document.getElementById("info-svg").clientHeight;
-    const halfWidth = infoWidth / 2;
-    const marginBetweenRectangles = 10;
-
-    const indications = new Set();
-    const reactions = new Set();
-
-    data.forEach(country => {
-        country.values.forEach(product => {
-            product.reports.forEach(report => {
-                splitBySemicolon(report.DrugIndication).forEach(indication => indications.add(indication));
-                splitBySemicolon(report.Reactions).forEach(reaction => reactions.add(reaction));
-            });
-        });
+        placeDotsRadially(Array.from(allGenericNames), "green");
+        placeDotsRadially(Array.from(allBrandNames), "blue");
     });
 
-    const linkedShapes = [];
-    const indicationGroup = d3.select("#info-svg").append("g").attr("class", "indication-group");
-    const reactionGroup = d3.select("#info-svg").append("g").attr("class", "reaction-group");
-    const indicationXOffset = halfWidth / 2 - 220;
-    const reactionXOffset = halfWidth + halfWidth / 2 - 200;
+    svg.selectAll(".legend").remove();
 
-    let i = 0;
-    let j = 0;
-}
+    const legendGroup = svg.append("g")
+        .attr("class", "legend")
+        .attr("transform", `translate(${outerWidth / 2}, -50)`);
 
-function splitBySemicolon(value) {
-    return value.split(";").map(v => v.trim()).filter(Boolean);
-}
+    legendGroup.append("circle")
+        .attr("cx", -80)
+        .attr("cy", 0)
+        .attr("r", 10)
+        .attr("fill", "green");
 
-function showOutcomeColors(d) {
-    const outcomeContainer = document.getElementById('outcome-colors');
-    outcomeContainer.innerHTML = '';
+    legendGroup.append("text")
+        .attr("x", -60)
+        .attr("y", 5)
+        .text("Generic Names")
+        .style("font-size", "12px");
 
-    
-    outcomeContainer.style.display = 'flex';
-    outcomeContainer.style.flexDirection = 'row';
-    outcomeContainer.style.justifyContent = 'flex-start';
+    legendGroup.append("circle")
+        .attr("cx", 80)
+        .attr("cy", 0)
+        .attr("r", 10)
+        .attr("fill", "blue");
+
+    legendGroup.append("text")
+        .attr("x", 100)
+        .attr("y", 5)
+        .text("Brand Names")
+        .style("font-size", "12px");
+
+    const outcomeLegendGroup = svg.append("g")
+        .attr("class", "outcome-legend")
+        .attr("transform", `translate(10, ${outerHeight + 30})`);
+
+    let legendX = 0;
 
     Object.keys(outcomeColors).forEach(outcome => {
-        const div = document.createElement('div');
-        div.style.display = 'flex';
-        div.style.alignItems = 'center';
+        outcomeLegendGroup.append("rect")
+            .attr("x", legendX)
+            .attr("y", 0)
+            .attr("width", 20)
+            .attr("height", 20)
+            .attr("fill", outcomeColors[outcome]);
 
-        const colorSquare = document.createElement('div');
-        colorSquare.className = 'color-square';
-        colorSquare.style.marginLeft = '45px';
-        colorSquare.style.backgroundColor = outcomeColors[outcome];
-        colorSquare.style.width = '20px';
-        colorSquare.style.height = '20px';
-        colorSquare.style.marginRight = '0px';
+        outcomeLegendGroup.append("text")
+            .attr("x", legendX + 25)
+            .attr("y", 15)
+            .text(outcome)
+            .style("font-size", "12px");
 
-        const span = document.createElement('span');
-        span.textContent = outcome;
-
-        div.appendChild(colorSquare);
-        div.appendChild(span);
-        outcomeContainer.appendChild(div);
+        legendX += 100;
     });
-
-    const legendDiv = document.createElement('div');
-    legendDiv.style.display = 'flex';
-    legendDiv.style.alignItems = 'center';
-
-    const greenCircle = document.createElement('div');
-    greenCircle.style.backgroundColor = 'green';
-    greenCircle.style.width = '20px';
-    greenCircle.style.height = '20px';
-    greenCircle.style.borderRadius = '50%';
-    greenCircle.style.marginLeft = '30px';
-
-    const greenLabel = document.createElement('span');
-    greenLabel.textContent = 'Generic Names';
-
-    const blueCircle = document.createElement('div');
-    blueCircle.style.backgroundColor = 'blue';
-    blueCircle.style.width = '20px';
-    blueCircle.style.height = '20px';
-    blueCircle.style.borderRadius = '50%';
-    blueCircle.style.marginLeft = '30px';
-
-    const blueLabel = document.createElement('span');
-    blueLabel.textContent = 'Brand Names';
-
-    legendDiv.appendChild(greenCircle);
-    legendDiv.appendChild(greenLabel);
-    legendDiv.appendChild(blueCircle);
-    legendDiv.appendChild(blueLabel);
-
-    outcomeContainer.appendChild(legendDiv);
 }
 
-function updateInfoPanelForShapes() {
-    const outcomeContainer = document.getElementById('outcome-colors');
-    outcomeContainer.innerHTML = '';
-
-    const reactionDiv = document.createElement('div');
-    reactionDiv.style.display = 'flex';
-    reactionDiv.style.alignItems = 'center';
-
-    const reactionSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    reactionSvg.setAttribute("width", "40");
-    reactionSvg.setAttribute("height", "40");
-
-    const redHexagon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-    redHexagon.setAttribute("points", hexagonPoints(20, 20, 20));
-    redHexagon.setAttribute("fill", "#ff7e7e");
-    redHexagon.setAttribute("stroke", "darkred");
-    redHexagon.setAttribute("stroke-width", "2");
-    
-
-    reactionSvg.appendChild(redHexagon);
-
-    const reactionLabel = document.createElement('span');
-    reactionLabel.textContent = 'Reactions';
-    reactionLabel.style.marginLeft = '8px';
-
-    reactionDiv.appendChild(reactionSvg);
-    reactionDiv.appendChild(reactionLabel);
-    outcomeContainer.appendChild(reactionDiv);
-
-    const indicationDiv = document.createElement('div');
-    indicationDiv.style.display = 'flex';
-    indicationDiv.style.alignItems = 'center';
-
-    const greenSquare = document.createElement('div');
-    greenSquare.className = 'color-square';
-    greenSquare.style.width = '40px';
-    greenSquare.style.height = '40px';
-    greenSquare.style.backgroundColor = '#a9ff92';
-    greenSquare.style.marginLeft = '30px';
-
-    const indicationLabel = document.createElement('span');
-    indicationLabel.textContent = 'Indications';
-
-    indicationDiv.appendChild(greenSquare);
-    indicationDiv.appendChild(indicationLabel);
-    outcomeContainer.appendChild(indicationDiv);
-}
-
-function toggleBounceAndEnlarge(element, reports) {
-    const isBouncing = element.classed("bouncing");
-    const isEnlarged = element.classed("enlarged");
-
-    if (isBouncing && !isEnlarged) {
-        element.classed("bouncing", false).classed("enlarged", true);
-        enlargeShapeInPlace(element);
-        fadeBackground();
-        togglePatientInfoIcons(element, reports);
-        createMagicLens();
-        currentEnlargedElement = element;
-
-    } else if (isEnlarged) {
-        restoreBackground();
-        element.classed("enlarged", false).attr("transform", null);
-        togglePatientInfoIcons(element, reports);
-        resetLensAndVisualization();
-        currentEnlargedElement = null;
-
-    } else {
-        stopAllBouncing();
-        element.classed("bouncing", true);
-    }
-}
 
 function stopAllBeating() {
     d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
 }
 
-function stopAllBouncing() {
-    d3.selectAll(".bouncing").classed("bouncing", false);
-    d3.selectAll(".highlighted").classed("highlighted", false);
-    d3.selectAll(".enlarged").classed("enlarged", false).attr("transform", null);
-    restoreBackground();
-}
-
-function enlargeShapeInPlace(element, scaleFactor = 2) {
-    const bbox = element.node().getBBox();
-    const centerX = bbox.x + bbox.width / 2;
-    const centerY = bbox.y + bbox.height / 2;
-    element.attr("transform", `translate(${centerX},${centerY}) scale(${scaleFactor}) translate(${-centerX},${-centerY})`);
-}
-
-function highlightProductsByReactionOrIndication(clickedValue, field) {
+function triggerBeatingForProduct(medicinalProductKey) {
     stopAllBeating();
-    d3.selectAll(".product").each(function (d) {
-        const matchingReports = d.data.reports.filter(report => splitBySemicolon(report[field]).includes(clickedValue));
-        if (matchingReports.length > 0) {
-            d3.select(this).select(".product-outer").classed("highlight", true).classed("beating", true);
-            setTimeout(() => {
-                d3.select(this).select(".product-outer").classed("beating", false);
-            }, 20000);
+
+    d3.selectAll(".product").each(function(d) {
+        if (d.data.key === medicinalProductKey) {
+            const productRect = d3.select(this).select(".product-outer");
+            productRect.classed("beating", true);
         }
     });
 }
 
-function hexagonPoints(x, y, radius) {
-    const points = [];
-    for (let i = 0; i < 6; i++) {
-        const angle = (Math.PI / 3) * i;
-        const px = x + radius * Math.cos(angle);
-        const py = y + radius * Math.sin(angle);
-        points.push(`${px},${py}`);
-    }
-    return points.join(" ");
-}
 
 function showProductInfo(productData) {
-    const infoSvg = d3.select("#info-svg");
-    infoSvg.selectAll("*").remove();
-    const infoWidth = document.getElementById("info-svg").clientWidth;
-    const infoHeight = document.getElementById("info-svg").clientHeight;
-    const halfWidth = infoWidth / 2;
-    const marginBetweenRectangles = 10;
-
-    infoSvg.append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", halfWidth - marginBetweenRectangles / 2)
-        .attr("height", infoHeight)
-        .attr("fill", "#ffffff")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 3);
-
-    infoSvg.append("rect")
-        .attr("x", halfWidth + marginBetweenRectangles / 2)
-        .attr("y", 0)
-        .attr("width", halfWidth - marginBetweenRectangles / 2)
-        .attr("height", infoHeight)
-        .attr("fill", "#ffffff")
-        .attr("stroke", "#ffffff")
-        .attr("stroke-width", 3);
+    d3.select("#sankey-container").html("");
 
     const indicationCounts = {};
     const reactionCounts = {};
+    const genericNameCounts = {};
+    const brandNameCounts = {};
 
+    // Collect indications, reactions, generic names, and brand names
     if (productData && productData.reports) {
         productData.reports.forEach(report => {
             splitBySemicolon(report.DrugIndication).forEach(indication => {
@@ -1080,248 +575,180 @@ function showProductInfo(productData) {
                     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
                 }
             });
-        });
-    }
-
-    const sortedIndications = Object.keys(indicationCounts).sort();
-    const sortedReactions = Object.keys(reactionCounts).sort();
-
-    const linkedShapes = [];
-    const indicationGroup = infoSvg.append("g").attr("class", "indication-group");
-    const reactionGroup = infoSvg.append("g").attr("class", "reaction-group");
-
-    const indicationXOffset = halfWidth / 2 - 220;
-    const reactionXOffset = halfWidth + halfWidth / 2 - 200;
-
-    const globalIndicationCountValues = Object.values(globalIndicationCounts);
-    const globalReactionCountValues = Object.values(globalReactionCounts);
-
-    const minIndicationCount = d3.min(globalIndicationCountValues);
-    const maxIndicationCount = d3.max(globalIndicationCountValues);
-
-    const minReactionCount = d3.min(globalReactionCountValues);
-    const maxReactionCount = d3.max(globalReactionCountValues);
-
-    const indicationColorScale = d3.scaleSequential(d3.interpolateGreens)
-        .domain([minIndicationCount, maxIndicationCount]);
-
-    const reactionColorScale = d3.scaleSequential(d3.interpolateReds)
-        .domain([minReactionCount, maxReactionCount]);
-
-    drawAlphabeticalShapes(
-        sortedIndications,
-        indicationGroup,
-        indicationXOffset,
-        "Indication",
-        linkedShapes,
-        productData,
-        indicationCounts,
-        indicationColorScale,
-        globalIndicationCounts
-    );
-
-    drawAlphabeticalShapes(
-        sortedReactions,
-        reactionGroup,
-        reactionXOffset,
-        "Reaction",
-        linkedShapes,
-        productData,
-        reactionCounts,
-        reactionColorScale,
-        globalReactionCounts
-    );
-}
-
-function drawAlphabeticalShapes(
-    items,
-    group,
-    xOffset,
-    type,
-    linkedShapes,
-    productData,
-    counts,
-    colorScale,
-    globalCounts
-) {
-    const rowHeight = 50;
-    const maxShapesPerRow = 5;
-    const shapeSize = 40;
-    let rowY = 50;
-    const itemsGroupedByLetter = d3.group(items, d => d.charAt(0).toUpperCase());
-
-    itemsGroupedByLetter.forEach((itemsForLetter, letter) => {
-        let rowX = 0;
-        let shapesInCurrentRow = 0;
-        let newRow = true;
-
-        itemsForLetter.forEach((item, index) => {
-            if (shapesInCurrentRow >= maxShapesPerRow) {
-                rowY += rowHeight;
-                rowX = 0;
-                shapesInCurrentRow = 0;
-                newRow = true;
-            }
-
-            if (newRow) {
-                group.append("text")
-                    .attr("x", xOffset - 20)
-                    .attr("y", rowY + shapeSize / 2 + 5)
-                    .text(letter)
-                    .attr("font-size", "12px")
-                    .attr("fill", "#888");
-                newRow = false;
-            }
-
-            const globalCount = globalCounts[item] || 0;
-            const productCount = counts[item] || 0;
-            const color = colorScale(globalCount);
-
-            if (type === "Indication") {
-                const indicationShape = group.append("rect")
-                    .attr("x", xOffset + rowX * (shapeSize + 10))
-                    .attr("y", rowY)
-                    .attr("width", shapeSize)
-                    .attr("height", shapeSize)
-                    .attr("fill", color)
-                    .attr("stroke", "darkgreen")
-                    .attr("stroke-width", 4)
-                    .attr("class", "fadeable")
-                    .on("mouseover", (event) => showTooltip(event, item, productCount, globalCount))
-                    .on("mouseout", hideTooltip)
-                    .on("click", function () {
-                        onShapeClick(item, "DrugIndication", productData, this);
-                    });
-
-                linkedShapes.push([indicationShape.node()]);
-            } else if (type === "Reaction") {
-                const reactionShape = group.append("polygon")
-                    .attr("points", hexagonPoints(
-                        xOffset + rowX * (shapeSize + 10) + shapeSize / 2,
-                        rowY + shapeSize / 2,
-                        shapeSize / 2
-                    ))
-                    .attr("fill", color)
-                    .attr("stroke", "darkred")
-                    .attr("stroke-width", 4)
-                    .attr("class", "fadeable")
-                    .on("mouseover", (event) => showTooltip(event, item, productCount, globalCount))
-                    .on("mouseout", hideTooltip)
-                    .on("click", function () {
-                        onShapeClick(item, "Reactions", productData, this);
-                    });
-
-                linkedShapes.push([reactionShape.node()]);
-            }
-
-            rowX++;
-            shapesInCurrentRow++;
-        });
-
-        rowY += rowHeight;
-    });
-}
-
-
-function showTooltip(event, item, productCount, globalCount) {
-    tooltip.transition()
-        .duration(200)
-        .style("opacity", 1);
-    tooltip.html(`${item}<br/>Product Reports: ${productCount}<br/>Total Reports: ${globalCount}`)
-        .style("left", `${event.pageX + 5}px`)
-        .style("top", `${event.pageY - 28}px`);
-}
-
-function hideTooltip() {
-    tooltip.transition().duration(500).style("opacity", 0);
-}
-
-function onShapeClick(item, field, productData, element) {
-    const reports = getReportsForShape(field, item, originalData);
-    if (reports.length > 0) {
-        toggleBounceAndEnlarge(d3.select(element), reports);
-        highlightProductsByReactionOrIndication(item, field);
-        updateInfoPanelForShapes();
-    }
-}
-
-function getReportsForShape(field, value, data) {
-    const matchingReports = [];
-
-    data.forEach(report => {
-        const fieldValues = splitBySemicolon(report[field]);
-        if (fieldValues.includes(value)) {
-            matchingReports.push(report);
-        }
-    });
-
-    return matchingReports;
-}
-function fadeBackground() {
-    d3.selectAll("rect, polygon, circle").classed("faded", true);
-    d3.selectAll(".enlarged").classed("faded", false);
-}
-
-function restoreBackground() {
-    d3.selectAll(".faded").classed("faded", false);
-}
-document.getElementById("close-panel").addEventListener("click", function () {
-    const infoPanel = document.getElementById("info-panel");
-    infoPanel.style.display = "none";
-    if (currentEnlargedElement) {
-        currentEnlargedElement.classed("enlarged", false).attr("transform", null);
-        currentEnlargedElement = null;
-    }
-    restoreBackground();
-});
-
-d3.csv("data.csv").then((data) => {
-    groupedData = groupDataByCountryAndProduct(data);
-    totalReports = data.length;
-
-    initializeSlider(totalReports);
-    updateTreemap();
-
-
-    document.getElementById('search-bar').addEventListener('input', function () {
-        const query = this.value.toLowerCase();
-        stopAllBeating();
-        d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
-
-        if (query) {
-            d3.selectAll(".product").each(function (d) {
-                const productName = d.data.key.toLowerCase();
-                const countryName = d.parent.data.key.toLowerCase();
-
-                if (productName.includes(query) || countryName.includes(query)) {
-                    const productRect = d3.select(this).select(".product-outer");
-                    productRect.classed("highlight", true).classed("beating", true);
+            splitBySemicolon(report.GenericName).forEach(generic => {
+                if (generic) {
+                    genericNameCounts[generic] = (genericNameCounts[generic] || 0) + 1;
                 }
             });
+            splitBySemicolon(report.BrandName).forEach(brand => {
+                if (brand) {
+                    brandNameCounts[brand] = (brandNameCounts[brand] || 0) + 1;
+                }
+            });
+        });
+    }
+
+    const indications = Object.keys(indicationCounts).sort();
+    const reactions = Object.keys(reactionCounts).sort();
+    const genericNames = Object.keys(genericNameCounts).sort();
+    const brandNames = Object.keys(brandNameCounts).sort();
+
+    const nodes = [
+        ...indications.map(name => ({ id: `ind_${name}`, name, type: 'indication' })),
+        ...genericNames.map(name => ({ id: `gen_${name}`, name, type: 'generic' })),
+        { id: `prod_${productData.key}`, name: productData.key, type: 'product' },
+        ...brandNames.map(name => ({ id: `brand_${name}`, name, type: 'brand' })),
+        ...reactions.map(name => ({ id: `reac_${name}`, name, type: 'reaction' })),
+    ];
+
+    const links = [
+        ...indications.map(name => ({
+            source: `ind_${name}`,
+            target: `prod_${productData.key}`,
+            value: indicationCounts[name],
+        })),
+        ...genericNames.map(name => ({
+            source: `gen_${name}`,
+            target: `prod_${productData.key}`,
+            value: genericNameCounts[name],
+        })),
+        ...brandNames.map(name => ({
+            source: `prod_${productData.key}`,
+            target: `brand_${name}`,
+            value: brandNameCounts[name],
+        })),
+        ...reactions.map(name => ({
+            source: `prod_${productData.key}`,
+            target: `reac_${name}`,
+            value: reactionCounts[name],
+        })),
+    ];
+
+    drawSankeyDiagram(nodes, links);
+}
+
+
+
+function drawSankeyDiagram(nodesData, linksData) {
+    const sankeyWidth = 800;
+    const sankeyHeight = 600;
+
+    const sankeySvg = d3.select("#sankey-container")
+        .append("svg")
+        .attr("width", sankeyWidth)
+        .attr("height", sankeyHeight);
+
+    const sankey = d3.sankey()
+        .nodeWidth(20)
+        .nodePadding(10)
+        .extent([[1, 1], [sankeyWidth - 1, sankeyHeight - 6]])
+        .nodeAlign(d3.sankeyCenter)
+        .nodeSort(null);
+
+    const graph = {
+        nodes: nodesData.map(d => Object.assign({}, d)),
+        links: linksData.map(d => Object.assign({}, d))
+    };
+
+    const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
+
+    // Update links to use node objects
+    graph.links.forEach(link => {
+        link.source = idToNode.get(link.source);
+        link.target = idToNode.get(link.target);
+    });
+
+    // Assign layers based on node types
+    graph.nodes.forEach(node => {
+        if (node.type === "indication" || node.type === "generic") {
+            node.layer = 0;
+        } else if (node.type === "product") {
+            node.layer = 1; // Center layer
+        } else if (node.type === "brand" || node.type === "reaction") {
+            node.layer = 2; // Rightmost layer
         }
-    });    
+    });
 
-svg.append("circle")
-    .attr("cx", outerWidth / 2 - 50)
-    .attr("cy", -40)
-    .attr("r", 10)
-    .attr("fill", "green");
+    sankey(graph);
+    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+    sankeySvg.append("g")
+        .selectAll("path")
+        .data(graph.links)
+        .enter()
+        .append("path")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("fill", "none")
+        .attr("stroke", d => colorScale(d.source.name))
+        .attr("stroke-width", d => Math.max(1, d.width))
+        .attr("opacity", 0.5);
 
-svg.append("text")
-    .attr("x", outerWidth / 2 - 30)
-    .attr("y", -35)
-    .text("Generic Names")
-    .style("font-size", "12px");
+    // Draw nodes as squares
+    const node = sankeySvg.append("g")
+        .selectAll("g")
+        .data(graph.nodes)
+        .enter()
+        .append("g");
 
-svg.append("circle")
-    .attr("cx", outerWidth / 2 + 50)
-    .attr("cy", -40)
-    .attr("r", 10)
-    .attr("fill", "blue");
+    const squareSize = 40;
 
-svg.append("text")
-    .attr("x", outerWidth / 2 + 70)
-    .attr("y", -35)
-    .text("Brand Names")
-    .style("font-size", "12px");
-});
+    node.append("rect")
+        .attr("x", d => d.x0)
+        .attr("y", d => (d.y0 + d.y1) / 2 - squareSize / 2)
+        .attr("width", squareSize)
+        .attr("height", squareSize)
+        .attr("fill", d => colorScale(d.name))
+        .attr("stroke", "#000")
+        .on("click", function (event, d) {
+            if (d.type === "indication" || d.type === "reaction") {
+                handleNodeClick(d);
+            }
+        });
+
+    node.append("text")
+        .attr("x", d => d.x0 + squareSize / 2)
+        .attr("y", d => (d.y0 + d.y1) / 2)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", "middle")
+        .text(d => d.name)
+        .style("pointer-events", "none");
+}
+
+
+function handleNodeClick(nodeData) {
+    const type = nodeData.type;
+    const name = nodeData.name;
+
+    const associatedProducts = findProductsByReactionOrIndication(type, name);
+    triggerBeatingForProduct(associatedProducts);
+}
+
+function findProductsByReactionOrIndication(type, name) {
+    const products = [];
+
+    originalData.forEach(report => {
+        const productName = report.Medicinalproduct;
+
+        if (type === "indication") {
+            const indications = splitBySemicolon(report.DrugIndication);
+            if (indications.includes(name)) {
+                products.push(productName);
+            }
+        } else if (type === "reaction") {
+            const reactions = splitBySemicolon(report.Reactions);
+            if (reactions.includes(name)) {
+                products.push(productName);
+            }
+        }
+    });
+
+    return [...new Set(products)];
+}
+
+
+function linkSourceIndex(source) {
+    return typeof source === "object" ? source.index : source;
+}
+
+function splitBySemicolon(value) {
+    return value.split(";").map(v => v.trim()).filter(Boolean);
+}
