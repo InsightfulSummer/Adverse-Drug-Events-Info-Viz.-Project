@@ -28,7 +28,6 @@ body {
     align-items: center;
 }
 
-
 h1 {
 <<<<<<< HEAD
     top: 1px;
@@ -168,7 +167,7 @@ h4 {
 
 #treemap {
     overflow: visible;
-    width: 90vw;
+    width: 80vw;
     height: 80vh;
     margin: 20px;
 >>>>>>> d85a6ad (Adding project files)
@@ -222,12 +221,17 @@ h4 {
 #search-container {
     position: absolute;
 <<<<<<< HEAD
+<<<<<<< HEAD
     top: 380px;
     left: 45px;
 =======
     top: 150px;
     right: 80px;
 >>>>>>> d85a6ad (Adding project files)
+=======
+    top: 200px;
+    right: 20px;
+>>>>>>> c297b57 (new Indications/reactions)
     display: flex;
     align-items: center;
 }
@@ -304,8 +308,12 @@ h4 {
     width: 120px;
 =======
 #search-bar {
+<<<<<<< HEAD
     width: 200px;
 >>>>>>> d85a6ad (Adding project files)
+=======
+    width: 100px;
+>>>>>>> c297b57 (new Indications/reactions)
     padding: 5px;
     font-size: 14px;
     border: 1px solid #cccccc;
@@ -440,6 +448,7 @@ h4 {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 .red-hexagon {
     transform-origin: 50% 0%;
@@ -451,6 +460,8 @@ h4 {
     transform: scale(2);
 }
 
+=======
+>>>>>>> c297b57 (new Indications/reactions)
 .bouncing {
     animation: bounce 1s infinite;
 }
@@ -460,7 +471,6 @@ h4 {
     20% { transform: translateY(-5px); }
     50% { transform: translateY(-15px); }
     100% { transform: translateY(0px); }
-    
 }
 
 >>>>>>> d85a6ad (Adding project files)
@@ -518,6 +528,7 @@ h4 {
     cursor: pointer;
 }
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 #timeline-container {
     width: 80vw;
@@ -807,6 +818,8 @@ h4 {
 }
 =======
 
+=======
+>>>>>>> c297b57 (new Indications/reactions)
 #timeline-container {
     width: 100%;
     position: relative;
@@ -873,35 +886,13 @@ h4 {
     right: 0;
 }
 
-.magic-lens {
-    position: fixed;
-    cursor: move;
-    z-index: 1000;
+#sankey-container {
+    align-items: center;
+    width: 80%;
+    height: fit-content;
+    overflow: auto;
 }
-
-.magic-lens img {
-    width: 50px;
-    height: 50px;
-}
-
-.dosage-tooltip {
-    position: absolute;
-    top: 100%; /* Position below the magic lens */
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(255, 255, 255, 0.9);
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    width: 200px;
-    font-size: 12px;
-    color: #333;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-    z-index: 1001;
-    pointer-events: none;
-    opacity: 0; /* Start hidden */
-    transition: opacity 0.2s ease-in-out; /* Smooth transition */
-}
+<<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> d85a6ad (Adding project files)
 =======
@@ -909,3 +900,5 @@ h4 {
 
 
 >>>>>>> 5c1e280 (Icons for Patient Info Updated)
+=======
+>>>>>>> c297b57 (new Indications/reactions)
