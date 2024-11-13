@@ -301,8 +301,8 @@ function groupDataByCountryAndProduct(data) {
             key,
             value: values.length,
             reports: values
-        }))
-    }));
+        })).sort((a, b) => d3.ascending(a.key, b.key))
+    })).sort((a, b) => d3.ascending(a.key, b.key));
 }
 
 function initializeSlider(maxReports) {
@@ -539,18 +539,14 @@ function drawTreemap(data) {
 
 
 function stopAllBeating() {
-    d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
+    d3.selectAll(".beating").classed("beating", false);
 }
 
-function triggerBeatingForProduct(medicinalProductKey) {
+function triggerBeatingForProduct(products) {
     stopAllBeating();
-
-    d3.selectAll(".product").each(function(d) {
-        if (d.data.key === medicinalProductKey) {
-            const productRect = d3.select(this).select(".product-outer");
-            productRect.classed("beating", true);
-        }
-    });
+    d3.selectAll(".product-outer").filter(function(d) {
+        return products.includes(d.data.key);
+    }).classed("beating", true);
 }
 
 
@@ -559,10 +555,7 @@ function showProductInfo(productData) {
 
     const indicationCounts = {};
     const reactionCounts = {};
-    const genericNameCounts = {};
-    const brandNameCounts = {};
 
-    // Collect indications, reactions, generic names, and brand names
     if (productData && productData.reports) {
         productData.reports.forEach(report => {
             splitBySemicolon(report.DrugIndication).forEach(indication => {
@@ -575,29 +568,15 @@ function showProductInfo(productData) {
                     reactionCounts[reaction] = (reactionCounts[reaction] || 0) + 1;
                 }
             });
-            splitBySemicolon(report.GenericName).forEach(generic => {
-                if (generic) {
-                    genericNameCounts[generic] = (genericNameCounts[generic] || 0) + 1;
-                }
-            });
-            splitBySemicolon(report.BrandName).forEach(brand => {
-                if (brand) {
-                    brandNameCounts[brand] = (brandNameCounts[brand] || 0) + 1;
-                }
-            });
         });
     }
 
     const indications = Object.keys(indicationCounts).sort();
     const reactions = Object.keys(reactionCounts).sort();
-    const genericNames = Object.keys(genericNameCounts).sort();
-    const brandNames = Object.keys(brandNameCounts).sort();
 
     const nodes = [
         ...indications.map(name => ({ id: `ind_${name}`, name, type: 'indication' })),
-        ...genericNames.map(name => ({ id: `gen_${name}`, name, type: 'generic' })),
         { id: `prod_${productData.key}`, name: productData.key, type: 'product' },
-        ...brandNames.map(name => ({ id: `brand_${name}`, name, type: 'brand' })),
         ...reactions.map(name => ({ id: `reac_${name}`, name, type: 'reaction' })),
     ];
 
@@ -606,16 +585,6 @@ function showProductInfo(productData) {
             source: `ind_${name}`,
             target: `prod_${productData.key}`,
             value: indicationCounts[name],
-        })),
-        ...genericNames.map(name => ({
-            source: `gen_${name}`,
-            target: `prod_${productData.key}`,
-            value: genericNameCounts[name],
-        })),
-        ...brandNames.map(name => ({
-            source: `prod_${productData.key}`,
-            target: `brand_${name}`,
-            value: brandNameCounts[name],
         })),
         ...reactions.map(name => ({
             source: `prod_${productData.key}`,
@@ -627,20 +596,22 @@ function showProductInfo(productData) {
     drawSankeyDiagram(nodes, links);
 }
 
-
-
 function drawSankeyDiagram(nodesData, linksData) {
-    const sankeyWidth = 800;
+    const sankeyWidth = 900;
     const sankeyHeight = 600;
 
     const sankeySvg = d3.select("#sankey-container")
         .append("svg")
         .attr("width", sankeyWidth)
-        .attr("height", sankeyHeight);
+        .attr("height", sankeyHeight)
+        .call(d3.zoom().scaleExtent([1, 8]).on("zoom", (event) => {
+            sankeySvg.attr("transform", event.transform);
+        }))
+        .append("g");
 
     const sankey = d3.sankey()
         .nodeWidth(20)
-        .nodePadding(10)
+        .nodePadding(20)
         .extent([[1, 1], [sankeyWidth - 1, sankeyHeight - 6]])
         .nodeAlign(d3.sankeyCenter)
         .nodeSort(null);
@@ -658,19 +629,19 @@ function drawSankeyDiagram(nodesData, linksData) {
         link.target = idToNode.get(link.target);
     });
 
-    // Assign layers based on node types
     graph.nodes.forEach(node => {
-        if (node.type === "indication" || node.type === "generic") {
+        if (node.type === "indication") {
             node.layer = 0;
         } else if (node.type === "product") {
-            node.layer = 1; // Center layer
-        } else if (node.type === "brand" || node.type === "reaction") {
-            node.layer = 2; // Rightmost layer
+            node.layer = 1;
+        } else if (node.type === "reaction") {
+            node.layer = 2;
         }
     });
 
     sankey(graph);
     const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
     sankeySvg.append("g")
         .selectAll("path")
         .data(graph.links)
@@ -678,41 +649,61 @@ function drawSankeyDiagram(nodesData, linksData) {
         .append("path")
         .attr("d", d3.sankeyLinkHorizontal())
         .attr("fill", "none")
-        .attr("stroke", d => colorScale(d.source.name))
+        .attr("stroke", d => {
+            return d.source.type === "indication" ? "darkgreen" : "darkred";
+        })
         .attr("stroke-width", d => Math.max(1, d.width))
-        .attr("opacity", 0.5);
+        .attr("opacity", 0.5)
+        .on("mouseover", function(event, d) {
+            tooltip.transition().duration(200).style("opacity", 1);
+            tooltip.html(`${d.value} reports`)
+                .style("left", `${event.pageX + 5}px`)
+                .style("top", `${event.pageY - 28}px`);
+        })
+        .on("mouseout", function() {
+            tooltip.transition().duration(500).style("opacity", 0);
+        });
 
-    // Draw nodes as squares
     const node = sankeySvg.append("g")
         .selectAll("g")
         .data(graph.nodes)
         .enter()
-        .append("g");
-
-    const squareSize = 40;
+        .append("g")
+        .attr("data-node-id", d => d.id);
 
     node.append("rect")
         .attr("x", d => d.x0)
-        .attr("y", d => (d.y0 + d.y1) / 2 - squareSize / 2)
-        .attr("width", squareSize)
-        .attr("height", squareSize)
-        .attr("fill", d => colorScale(d.name))
-        .attr("stroke", "#000")
-        .on("click", function (event, d) {
+        .attr("y", d => d.y0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("fill", d => {
+            if (d.type === "indication") return "lightgreen";
+            if (d.type === "reaction") return "lightcoral";
+            return colorScale(d.name);
+        })
+        .attr("stroke", d => {
+            if (d.type === "indication") return "darkgreen";
+            if (d.type === "reaction") return "darkred";
+            return "#000";
+        })
+        .attr("stroke-width", 1)
+        .on("click", function(event, d) {
+            stopAllBeating();
+            d3.select(this).classed("beating", true);
             if (d.type === "indication" || d.type === "reaction") {
                 handleNodeClick(d);
             }
+        })
+        .on("mouseover", function(event, d) {
+            tooltip.transition().duration(200).style("opacity", 1);
+            tooltip.html(`${d.name}`)
+                .style("left", `${event.pageX + 5}px`)
+                .style("top", `${event.pageY - 28}px`);
+        })
+        .on("mouseout", function() {
+            tooltip.transition().duration(500).style("opacity", 0);
         });
-
-    node.append("text")
-        .attr("x", d => d.x0 + squareSize / 2)
-        .attr("y", d => (d.y0 + d.y1) / 2)
-        .attr("dy", "0.35em")
-        .attr("text-anchor", "middle")
-        .text(d => d.name)
-        .style("pointer-events", "none");
 }
-
 
 function handleNodeClick(nodeData) {
     const type = nodeData.type;
@@ -720,6 +711,8 @@ function handleNodeClick(nodeData) {
 
     const associatedProducts = findProductsByReactionOrIndication(type, name);
     triggerBeatingForProduct(associatedProducts);
+
+    d3.select(`[data-node-id='${nodeData.id}'] rect`).classed("beating", true);
 }
 
 function findProductsByReactionOrIndication(type, name) {
