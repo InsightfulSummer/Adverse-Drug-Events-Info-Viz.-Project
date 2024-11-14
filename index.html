@@ -6,10 +6,7 @@
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="https://d3js.org/d3-sankey.v0.12.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
-
-
+    <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 </head>
 <body>
     <div id="content-container">
@@ -20,9 +17,29 @@
             <input type="range" id="report-slider" min="0" max="1000" value="0" step="100">
         </div>
 
-        <div id="search-container">
-            <input type="text" id="search-bar" placeholder="Search Medicinal Product">
+        <div id="filter-container">
+            <h3></h3>
+            <label for="age-slider">Age:</label>
+            <input type="range" id="age-slider" min="1" max="100" value="100">
+            <span id="age-value">100 yrs</span>
+
+            <label for="weight-slider">Weight (kg):</label>
+            <input type="range" id="weight-slider-min" min="0" max="200" value="0">
+            <input type="range" id="weight-slider-max" min="0" max="200" value="200">
+            <span id="weight-value">0 - 200 kg</span>
+
+            <div>
+                <label><input type="checkbox" id="male-checkbox" checked> Male</label>
+                <label><input type="checkbox" id="female-checkbox" checked> Female</label>
+            </div>
         </div>
+
+        <div id="search-container">
+            <input type="text" id="search-bar" placeholder="Search...">
+            <div id="search-results"></div>
+        </div>
+
+        <div id="legend-container"></div>
 
         <div id="treemap"></div>
 
