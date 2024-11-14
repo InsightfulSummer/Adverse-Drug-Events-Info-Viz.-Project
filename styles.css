@@ -379,11 +379,17 @@ h4 {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 445977d (filters & sankey Updated)
 #legend-container {
     display: flex;
     justify-content: center;
     align-items: center;
+<<<<<<< HEAD
     z-index: 1000;
+=======
+>>>>>>> 445977d (filters & sankey Updated)
 }
 
 .legend circle, .legend rect {
@@ -396,11 +402,15 @@ h4 {
     fill: #000;
 }
 
+<<<<<<< HEAD
 #navigation-instructions {
     position: relative;
     right: 10px;
     top: 75px;
 =======
+=======
+
+>>>>>>> 445977d (filters & sankey Updated)
 .tooltip {
     position: absolute;
     text-align: center;
@@ -888,10 +898,14 @@ h4 {
 
 #sankey-container {
     align-items: center;
-    width: 80%;
-    height: fit-content;
+    margin-left: 100px;
+    margin-top: 50px;
+    margin-right: 50px;
+    width: 100%;
+    height: 100%;
     overflow: auto;
 }
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> d85a6ad (Adding project files)
@@ -902,3 +916,75 @@ h4 {
 >>>>>>> 5c1e280 (Icons for Patient Info Updated)
 =======
 >>>>>>> c297b57 (new Indications/reactions)
+=======
+
+#filter-container {
+    position: absolute;
+    left: 20px;
+    top: 250px;
+    width: 100px;
+    background: #ffffff;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+#filter-container h3 {
+    margin-top: 0;
+}
+
+#filter-container label {
+    display: block;
+    margin-top: 10px;
+}
+
+#filter-container input[type="range"] {
+    width: 100%;
+}
+
+#search-results {
+    position: absolute;
+    top: 40px;
+    right: 20px;
+    background: white;
+    border: 1px solid #ccc;
+    max-height: 200px;
+    overflow-y: auto;
+    display: none;
+}
+
+#search-results p {
+    margin: 5px;
+    padding: 5px;
+    cursor: pointer;
+}
+
+#search-results p:hover {
+    background: #eee;
+}
+
+.detail-box {
+    position: absolute;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+    pointer-events: auto;
+    z-index: 1000;
+    max-width: 300px;
+    font-size: 14px;
+    color: #333;
+}
+
+.tooltip {
+    position: absolute;
+    text-align: center;
+    width: 100px;
+    padding: 8px;
+    font: 12px sans-serif;
+    background: lightsteelblue;
+    border: 0;
+    border-radius: 4px;
+    pointer-events: none;
+}
+>>>>>>> 445977d (filters & sankey Updated)
