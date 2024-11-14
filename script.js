@@ -1,6 +1,6 @@
 const _ = window._;
 let originalData = [];
-const margin = { top: 10, right: 10, bottom: 10, left: 10 },
+const margin = { top: 20, right: 10, bottom: 10, left: 10 },
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
     outerHeight = document.getElementById("treemap").clientHeight - margin.top - margin.bottom,
     countryMargin = 0,
@@ -45,6 +45,11 @@ const outcomeColors = {
     "Other": "#9ffff5"
 };
 
+let ageFilter = 100;
+let weightFilterMin = 0;
+let weightFilterMax = 200;
+let genderFilter = ['male', 'female'];
+
 function createGradient(id, color) {
     const defs = svg.append("defs");
     const gradient = defs.append("linearGradient")
@@ -76,6 +81,70 @@ reportSlider.addEventListener("input", function () {
     updateTreemap();
 });
 
+const ageSlider = document.getElementById("age-slider");
+const weightSliderMin = document.getElementById("weight-slider-min");
+const weightSliderMax = document.getElementById("weight-slider-max");
+const maleCheckbox = document.getElementById("male-checkbox");
+const femaleCheckbox = document.getElementById("female-checkbox");
+const ageValue = document.getElementById("age-value");
+const weightValue = document.getElementById("weight-value");
+
+updateGenderFilter();
+
+ageSlider.addEventListener("input", function () {
+    ageFilter = parseInt(this.value, 10);
+    ageValue.textContent = this.value + " yrs";
+    updateTreemap();
+});
+
+weightSliderMin.addEventListener("input", function () {
+    weightFilterMin = parseInt(this.value, 10);
+    if (weightFilterMin > weightFilterMax) {
+        weightFilterMax = weightFilterMin;
+        weightSliderMax.value = weightFilterMax;
+        weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}` ;
+    } else {
+        updateWeightDisplay();
+    }
+    updateTreemap();
+});
+
+weightSliderMax.addEventListener("input", function () {
+    weightFilterMax = parseInt(this.value, 10);
+    if (weightFilterMax < weightFilterMin) {
+        weightFilterMin = weightFilterMax;
+        weightSliderMin.value = weightFilterMin;
+        weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}`;
+    } else {
+        updateWeightDisplay();
+    }
+    updateTreemap();
+});
+
+maleCheckbox.addEventListener("change", function () {
+    updateGenderFilter();
+    updateTreemap();
+});
+
+femaleCheckbox.addEventListener("change", function () {
+    updateGenderFilter();
+    updateTreemap();
+});
+
+function updateWeightDisplay() {
+    weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}`;
+}
+
+function updateGenderFilter() {
+    genderFilter = [];
+    if (maleCheckbox.checked) genderFilter.push('male');
+    if (femaleCheckbox.checked) genderFilter.push('female');
+}
+
+function splitBySemicolon(value) {
+    return value ? value.split(";").map(v => v.trim()).filter(Boolean) : [];
+}
+
 function updateTreemap() {
     const selectedReports = parseInt(reportSlider.value, 10);
     const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
@@ -93,9 +162,10 @@ function parseDateString(dateString) {
     return date;
 }
 
-d3.csv("data.csv", function(d) {
+d3.csv("data.csv", function (d, i) {
     d.StartDate = parseDateString(d.StartDate);
     d.EndDate = parseDateString(d.EndDate);
+    d.id = i;
 
     if (d.PatientSex === '1') {
         d.PatientSex = 'male';
@@ -113,7 +183,7 @@ d3.csv("data.csv", function(d) {
     }
 
     return d;
-}).then(function(data) {
+}).then(function (data) {
 
     originalData = data;
     const allStartDates = data.map(d => d.StartDate).filter(d => d != null);
@@ -132,6 +202,7 @@ d3.csv("data.csv", function(d) {
 
     initializeSlider(totalReports);
     initializeDateRangeSlider();
+    drawLegend();
     updateTreemap();
 
     document.getElementById('search-bar').addEventListener('input', function () {
@@ -162,7 +233,26 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
         const startDateValid = !reportStartDate || reportStartDate >= selectedStartDate;
         const endDateValid = !reportEndDate || reportEndDate <= selectedEndDate;
 
-        return startDateValid && endDateValid;
+        if (!(startDateValid && endDateValid)) return false;
+
+        if (ageFilter < 100) {
+            if (report.PatientAge === 'unknown') return false;
+            const age = parseInt(report.PatientAge, 10);
+            if (isNaN(age) || age > ageFilter) return false;
+        }
+
+        if (weightFilterMin > 0 || weightFilterMax < 200) {
+            if (report.PatientWeight === 'unknown') return false;
+            const weight = parseFloat(report.PatientWeight);
+            if (isNaN(weight) || weight < weightFilterMin || weight > weightFilterMax) return false;
+        }
+
+        if (genderFilter.length < 2) {
+            if (report.PatientSex === 'unknown') return false;
+            if (!genderFilter.includes(report.PatientSex)) return false;
+        }
+
+        return true;
     });
     const groupedData = groupDataByCountryAndProduct(filteredReports);
     return groupedData;
@@ -242,7 +332,7 @@ function initializeDateRangeSlider() {
             }
         } else if (activeHandle === rightHandle) {
             const leftHandleLeft = parseInt(leftHandle.style.left);
-            if (newLeft < leftHandleLeft + leftHandle.offsetWidth) {
+            if (newLeft < leftHandleLeft + activeHandle.offsetWidth) {
                 newLeft = leftHandleLeft + activeHandle.offsetWidth;
             }
         }
@@ -357,16 +447,19 @@ function drawTreemap(data) {
             tooltip.transition().duration(500).style("opacity", 0);
         });
 
-    countries.append("text")
-        .attr("x", function(d) {
+        countries.append("text")
+        .attr("x", function (d) {
             return (d.x1 - d.x0) / 2;
         })
         .attr("y", -5)
-        .text(function(d) {
+        .attr("dy", "0")
+        .text(function (d) {
             return d.data.key;
         })
-        .attr("font-size", "8px")
-        .attr("text-anchor", "middle");
+        .attr("font-size", "10px")
+        .attr("text-anchor", "middle")
+        .attr("pointer-events", "none");
+    
 
     const products = countries.selectAll(".product")
         .data(d => d.children)
@@ -384,7 +477,7 @@ function drawTreemap(data) {
         .attr("stroke-width", 0)
         .on("click", function (event, d) {
             stopAllBeating();
-            triggerBeatingForProduct(d.data.key);
+            triggerBeatingForProduct([d.data.key]);
             showProductInfo(d.data);
         });
 
@@ -401,6 +494,7 @@ function drawTreemap(data) {
 
             d.data.reports.slice(0, maxReportsToShow).forEach((report, i) => {
                 productG.append("rect")
+                    .attr("class", "report-rect")
                     .attr("x", 0)
                     .attr("y", i * reportHeight)
                     .attr("width", productWidth)
@@ -408,20 +502,21 @@ function drawTreemap(data) {
                     .attr("fill", outcomeColors[report.Outcome] || "#ccc")
                     .attr("stroke", outcomeColors[report.Outcome] || "#ccc")
                     .attr("stroke-width", 2)
-                    .on("mouseover", function(event) {
+                    .on("mouseover", function (event) {
                         tooltip.transition()
                             .duration(200)
                             .style("opacity", 1);
-                        tooltip.html(`${d.data.key} - ${report.Outcome}`)
+                        tooltip.html(`Medicinal Product: ${d.data.key}`)
                             .style("left", `${event.pageX + 5}px`)
                             .style("top", `${event.pageY - 28}px`);
                     })
-                    .on("mouseout", function() {
+                    .on("mouseout", function () {
                         tooltip.transition().duration(500).style("opacity", 0);
                     })
-                    .on("click", function() {
+                    .on("click", function (event) {
+                        event.stopPropagation();
                         stopAllBeating();
-                        triggerBeatingForProduct(d.data.key);
+                        triggerBeatingForProduct([d.data.key]);
                         showProductInfo(d.data);
                     });
             });
@@ -468,7 +563,7 @@ function drawTreemap(data) {
                             .on("mouseout", () => {
                                 tooltip.transition().duration(500).style("opacity", 0);
                             });
-
+                        
                         angle += Math.PI / 2;
                         if (angle >= Math.PI * 2) {
                             angle = 0;
@@ -482,61 +577,69 @@ function drawTreemap(data) {
         placeDotsRadially(Array.from(allGenericNames), "green");
         placeDotsRadially(Array.from(allBrandNames), "blue");
     });
+}
 
-    svg.selectAll(".legend").remove();
+function drawLegend() {
+    const legendSvg = d3.select("#legend-container")
+        .append("svg")
+        .attr("width", outerWidth + margin.left + margin.right)
+        .attr("height", 35)
+        .style("margin-bottom", "0px");
 
-    const legendGroup = svg.append("g")
+    const legendGroup = legendSvg.append("g")
         .attr("class", "legend")
-        .attr("transform", `translate(${outerWidth / 2}, -50)`);
+        .attr("transform", `translate(${outerWidth/4}, 20)`);
 
     legendGroup.append("circle")
-        .attr("cx", -80)
+        .attr("cx", -200)
         .attr("cy", 0)
         .attr("r", 10)
         .attr("fill", "green");
 
     legendGroup.append("text")
-        .attr("x", -60)
+        .attr("x", -180)
         .attr("y", 5)
         .text("Generic Names")
-        .style("font-size", "12px");
+        .style("font-size", "12px")
+        .attr("text-anchor", "start");
 
     legendGroup.append("circle")
-        .attr("cx", 80)
+        .attr("cx", -75)
         .attr("cy", 0)
         .attr("r", 10)
         .attr("fill", "blue");
 
     legendGroup.append("text")
-        .attr("x", 100)
+        .attr("x", -60)
         .attr("y", 5)
         .text("Brand Names")
-        .style("font-size", "12px");
+        .style("font-size", "12px")
+        .attr("text-anchor", "start");
 
-    const outcomeLegendGroup = svg.append("g")
+    const outcomeLegendGroup = legendGroup.append("g")
         .attr("class", "outcome-legend")
-        .attr("transform", `translate(10, ${outerHeight + 30})`);
+        .attr("transform", `translate(90, 0)`);
 
     let legendX = 0;
 
     Object.keys(outcomeColors).forEach(outcome => {
         outcomeLegendGroup.append("rect")
             .attr("x", legendX)
-            .attr("y", 0)
+            .attr("y", -10)
             .attr("width", 20)
             .attr("height", 20)
             .attr("fill", outcomeColors[outcome]);
 
         outcomeLegendGroup.append("text")
             .attr("x", legendX + 25)
-            .attr("y", 15)
+            .attr("y", 5)
             .text(outcome)
-            .style("font-size", "12px");
+            .style("font-size", "12px")
+            .attr("text-anchor", "start");
 
-        legendX += 100;
+        legendX += 120;
     });
 }
-
 
 function stopAllBeating() {
     d3.selectAll(".beating").classed("beating", false);
@@ -544,11 +647,10 @@ function stopAllBeating() {
 
 function triggerBeatingForProduct(products) {
     stopAllBeating();
-    d3.selectAll(".product-outer").filter(function(d) {
+    d3.selectAll(".product-outer").filter(function (d) {
         return products.includes(d.data.key);
     }).classed("beating", true);
 }
-
 
 function showProductInfo(productData) {
     d3.select("#sankey-container").html("");
@@ -597,16 +699,13 @@ function showProductInfo(productData) {
 }
 
 function drawSankeyDiagram(nodesData, linksData) {
-    const sankeyWidth = 900;
-    const sankeyHeight = 600;
+    const sankeyWidth = 1450;
+    const sankeyHeight = 1000;
 
     const sankeySvg = d3.select("#sankey-container")
         .append("svg")
         .attr("width", sankeyWidth)
         .attr("height", sankeyHeight)
-        .call(d3.zoom().scaleExtent([1, 8]).on("zoom", (event) => {
-            sankeySvg.attr("transform", event.transform);
-        }))
         .append("g");
 
     const sankey = d3.sankey()
@@ -616,132 +715,337 @@ function drawSankeyDiagram(nodesData, linksData) {
         .nodeAlign(d3.sankeyCenter)
         .nodeSort(null);
 
-    const graph = {
+    let graph = {
         nodes: nodesData.map(d => Object.assign({}, d)),
         links: linksData.map(d => Object.assign({}, d))
     };
 
-    const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
+    drawSankeyGraph(graph);
 
-    // Update links to use node objects
-    graph.links.forEach(link => {
-        link.source = idToNode.get(link.source);
-        link.target = idToNode.get(link.target);
-    });
+    function drawSankeyGraph(graph) {
+        sankeySvg.selectAll("*").remove();
 
-    graph.nodes.forEach(node => {
-        if (node.type === "indication") {
-            node.layer = 0;
-        } else if (node.type === "product") {
-            node.layer = 1;
-        } else if (node.type === "reaction") {
-            node.layer = 2;
-        }
-    });
+        const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
 
-    sankey(graph);
-    const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-
-    sankeySvg.append("g")
-        .selectAll("path")
-        .data(graph.links)
-        .enter()
-        .append("path")
-        .attr("d", d3.sankeyLinkHorizontal())
-        .attr("fill", "none")
-        .attr("stroke", d => {
-            return d.source.type === "indication" ? "darkgreen" : "darkred";
-        })
-        .attr("stroke-width", d => Math.max(1, d.width))
-        .attr("opacity", 0.5)
-        .on("mouseover", function(event, d) {
-            tooltip.transition().duration(200).style("opacity", 1);
-            tooltip.html(`${d.value} reports`)
-                .style("left", `${event.pageX + 5}px`)
-                .style("top", `${event.pageY - 28}px`);
-        })
-        .on("mouseout", function() {
-            tooltip.transition().duration(500).style("opacity", 0);
+        graph.links.forEach(link => {
+            link.source = idToNode.get(link.source.id || link.source);
+            link.target = idToNode.get(link.target.id || link.target);
         });
 
-    const node = sankeySvg.append("g")
-        .selectAll("g")
-        .data(graph.nodes)
-        .enter()
-        .append("g")
-        .attr("data-node-id", d => d.id);
+        assignNodeLayers(graph.nodes);
 
-    node.append("rect")
-        .attr("x", d => d.x0)
-        .attr("y", d => d.y0)
-        .attr("width", d => d.x1 - d.x0)
-        .attr("height", d => d.y1 - d.y0)
-        .attr("fill", d => {
-            if (d.type === "indication") return "lightgreen";
-            if (d.type === "reaction") return "lightcoral";
-            return colorScale(d.name);
-        })
-        .attr("stroke", d => {
-            if (d.type === "indication") return "darkgreen";
-            if (d.type === "reaction") return "darkred";
-            return "#000";
-        })
-        .attr("stroke-width", 1)
-        .on("click", function(event, d) {
-            stopAllBeating();
-            d3.select(this).classed("beating", true);
-            if (d.type === "indication" || d.type === "reaction") {
-                handleNodeClick(d);
+        sankey(graph);
+
+        adjustNegativeLayers(graph.nodes, sankeyWidth);
+
+        const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
+        const translateX = (sankeyWidth - diagramWidth) / 2;
+
+        const diagramGroup = sankeySvg.append("g")
+            .attr("transform", `translate(${translateX},0)`);
+
+        drawSankeyElements(diagramGroup, graph);
+
+        diagramGroup.selectAll("rect")
+            .on("click", function (event, d) {
+                if (d.type === "indication" || d.type === "reaction") {
+                    if (!d.clickedOnce) {
+                        stopAllBeating();
+                        d3.select(this).classed("beating", true);
+                        d.clickedOnce = true;
+                        handleNodeClick(d);
+                    } else if (!d.reportsAdded) {
+                        d3.select(this).classed("beating", true);
+                        d.reportsAdded = true;
+                        addReportsToSankey(d, graph);
+                    }
+                } else if (d.type === 'report_detail') {
+                    showReportDetails(event, d);
+                }
+            })
+            .on("mouseover", function (event, d) {
+                tooltip.transition()
+                    .duration(200)
+                    .style("opacity", 1);
+                tooltip.html(`${d.name}`)
+                    .style("left", `${event.pageX + 5}px`)
+                    .style("top", `${event.pageY - 28}px`);
+            })
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+    }
+
+    function assignNodeLayers(nodes) {
+        nodes.forEach(node => {
+            if (node.type === "indication") {
+                node.layer = -2;
+            } else if (node.type === "product") {
+                node.layer = 0;
+            } else if (node.type === "reaction") {
+                node.layer = 2;
+            } else if (node.type === "report_detail") {
+                if (node.associatedType === "indication") {
+                    node.layer = -3;
+                } else if (node.associatedType === "reaction") {
+                    node.layer = 3;
+                }
             }
-        })
-        .on("mouseover", function(event, d) {
-            tooltip.transition().duration(200).style("opacity", 1);
-            tooltip.html(`${d.name}`)
-                .style("left", `${event.pageX + 5}px`)
-                .style("top", `${event.pageY - 28}px`);
-        })
-        .on("mouseout", function() {
-            tooltip.transition().duration(500).style("opacity", 0);
         });
+    }
+
+    function adjustNegativeLayers(nodes, sankeyWidth) {
+        const maxLayer = Math.max(...nodes.map(d => d.layer));
+        const minLayer = Math.min(...nodes.map(d => d.layer));
+        const totalLayers = maxLayer - minLayer + 1;
+        const layerWidth = (sankeyWidth - 20) / totalLayers;
+
+        nodes.forEach(node => {
+            node.x0 = (node.layer - minLayer) * layerWidth;
+            node.x1 = node.x0 + sankey.nodeWidth();
+        });
+    }
+
+    function drawSankeyElements(sankeySvg, graph) {
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        sankeySvg.append("g")
+            .selectAll("path")
+            .data(graph.links)
+            .enter()
+            .append("path")
+            .attr("d", d3.sankeyLinkHorizontal())
+            .attr("fill", "none")
+            .attr("stroke", d => {
+                if (d.source.type === "indication" || d.target.type === "indication") {
+                    return "darkgreen";
+                } else if (d.source.type === "reaction" || d.target.type === "reaction") {
+                    return "darkred";
+                } else {
+                    return "#888";
+                }
+            })
+            .attr("stroke-width", d => Math.max(2, d.width))
+            .attr("opacity", 0.5)
+            .on("mouseover", function (event, d) {
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`${d.value} reports`)
+                    .style("left", `${event.pageX + 5}px`)
+                    .style("top", `${event.pageY - 28}px`);
+            })
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+
+        const node = sankeySvg.append("g")
+            .selectAll("g")
+            .data(graph.nodes)
+            .enter()
+            .append("g")
+            .attr("data-node-id", d => d.id);
+
+        node.append("rect")
+            .attr("x", d => d.x0)
+            .attr("y", d => d.y0)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("fill", d => {
+                if (d.type === "indication") return "lightgreen";
+                if (d.type === "reaction") return "lightcoral";
+                if (d.type === "report_detail") {
+                    if (d.report && d.report.Outcome && outcomeColors[d.report.Outcome]) {
+                        return outcomeColors[d.report.Outcome];
+                    } else {
+                        return "#87ceeb";
+                    }
+                }
+                return colorScale(d.name);
+            })
+            .attr("stroke", d => {
+                if (d.type === "indication") return "darkgreen";
+                if (d.type === "reaction") return "darkred";
+                if (d.type === "report_detail") return "#4682b4";
+                return "#000";
+            })
+            .attr("stroke-width", 1);
+    }
+
+    function addReportsToSankey(nodeData, graph) {
+        const reports = getReportsByNode(nodeData);
+
+        const reportNodes = [];
+        const reportLinks = [];
+
+        reports.forEach(report => {
+            const reportId = report.id;
+            const reportDetailNodes = [];
+            const safetyReportNodeId = `safety_${reportId}`;
+            reportDetailNodes.push({
+                id: safetyReportNodeId,
+                name: `Report ID: ${reportId}`,
+                type: 'report_detail',
+                associatedType: nodeData.type,
+                reportId: reportId,
+                report: report
+            });
+
+            if (report.PatientSex && report.PatientSex !== 'unknown') {
+                const sexNodeId = `sex_${reportId}`;
+                const sex = report.PatientSex.charAt(0).toUpperCase() + report.PatientSex.slice(1);
+                reportDetailNodes.push({
+                    id: sexNodeId,
+                    name: `Sex: ${sex}`,
+                    type: 'report_detail',
+                    associatedType: nodeData.type,
+                    reportId: reportId,
+                    report: report
+                });
+            }
+
+            if (report.PatientAge && report.PatientAge !== 'unknown') {
+                const ageNodeId = `age_${reportId}`;
+                reportDetailNodes.push({
+                    id: ageNodeId,
+                    name: `Age: ${report.PatientAge} years`,
+                    type: 'report_detail',
+                    associatedType: nodeData.type,
+                    reportId: reportId,
+                    report: report
+                });
+            }
+
+            if (report.PatientWeight && report.PatientWeight !== 'unknown') {
+                const weightNodeId = `weight_${reportId}`;
+                reportDetailNodes.push({
+                    id: weightNodeId,
+                    name: `Weight: ${report.PatientWeight} kg`,
+                    type: 'report_detail',
+                    associatedType: nodeData.type,
+                    reportId: reportId,
+                    report: report
+                });
+            }
+
+            reportDetailNodes.forEach(detailNode => {
+                reportLinks.push({
+                    source: nodeData.type === 'indication' ? detailNode.id : nodeData.id,
+                    target: nodeData.type === 'indication' ? nodeData.id : detailNode.id,
+                    value: 1
+                });
+            });
+
+            reportNodes.push(...reportDetailNodes);
+        });
+
+        graph.nodes.push(...reportNodes);
+        graph.links.push(...reportLinks);
+        graph.nodes = Array.from(new Map(graph.nodes.map(node => [node.id, node])).values());
+
+        const linkSet = new Set();
+        graph.links = graph.links.filter(link => {
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            const key = `${sourceId}->${targetId}`;
+            if (linkSet.has(key)) {
+                return false;
+            } else {
+                linkSet.add(key);
+                return true;
+            }
+        });
+
+        drawSankeyGraph(graph);
+    }
+
+    function handleNodeClick(nodeData) {
+        const type = nodeData.type;
+        const name = nodeData.name;
+
+        const associatedProducts = findProductsByReactionOrIndication(type, name);
+        triggerBeatingForProduct(associatedProducts);
+
+        d3.select(`[data-node-id='${nodeData.id}'] rect`).classed("beating", true);
+    }
+
+    function findProductsByReactionOrIndication(type, name) {
+        const products = [];
+
+        originalData.forEach(report => {
+            const productName = report.Medicinalproduct;
+
+            if (type === "indication") {
+                const indications = splitBySemicolon(report.DrugIndication);
+                if (indications.includes(name)) {
+                    products.push(productName);
+                }
+            } else if (type === "reaction") {
+                const reactions = splitBySemicolon(report.Reactions);
+                if (reactions.includes(name)) {
+                    products.push(productName);
+                }
+            }
+        });
+
+        return [...new Set(products)];
+    }
+
+    function getReportsByNode(nodeData) {
+        return originalData.filter(report => {
+            if (nodeData.type === 'indication') {
+                return splitBySemicolon(report.DrugIndication).includes(nodeData.name);
+            } else if (nodeData.type === 'reaction') {
+                return splitBySemicolon(report.Reactions).includes(nodeData.name);
+            }
+            return false;
+        });
+    }
 }
 
-function handleNodeClick(nodeData) {
-    const type = nodeData.type;
-    const name = nodeData.name;
+function showReportDetails(event, d) {
+    d3.selectAll(".detail-box").remove();
+    const x = event.pageX + 20;
+    const y = event.pageY - 20;
+    const detailBox = d3.select("body")
+        .append("div")
+        .attr("class", "detail-box")
+        .style("position", "absolute")
+        .style("left", `${x}px`)
+        .style("top", `${y}px`)
+        .style("background", "white")
+        .style("border", "1px solid #ccc")
+        .style("padding", "10px")
+        .style("pointer-events", "auto")
+        .style("z-index", "1000");
 
-    const associatedProducts = findProductsByReactionOrIndication(type, name);
-    triggerBeatingForProduct(associatedProducts);
+    let message = "Patient Details:<br>";
+    const report = d.report;
+    const fields = [];
 
-    d3.select(`[data-node-id='${nodeData.id}'] rect`).classed("beating", true);
-}
+    if (report.id) {
+        fields.push(`<strong>Safety Report ID:</strong> ${report.id}`);
+    }
+    if (report.PatientAge && report.PatientAge !== 'unknown') {
+        fields.push(`<strong>Age:</strong> ${report.PatientAge} years`);
+    }
+    if (report.PatientSex && report.PatientSex !== 'unknown') {
+        fields.push(`<strong>Sex:</strong> ${report.PatientSex}`);
+    }
+    if (report.PatientWeight && report.PatientWeight !== 'unknown') {
+        fields.push(`<strong>Weight:</strong> ${report.PatientWeight} kg`);
+    }
 
-function findProductsByReactionOrIndication(type, name) {
-    const products = [];
+    message += fields.join("<br>");
 
-    originalData.forEach(report => {
-        const productName = report.Medicinalproduct;
+    detailBox.html(message);
 
-        if (type === "indication") {
-            const indications = splitBySemicolon(report.DrugIndication);
-            if (indications.includes(name)) {
-                products.push(productName);
-            }
-        } else if (type === "reaction") {
-            const reactions = splitBySemicolon(report.Reactions);
-            if (reactions.includes(name)) {
-                products.push(productName);
-            }
+    d3.select("body").on("click.detailBox", function(evt) {
+        const isClickInside = detailBox.node().contains(evt.target);
+        if (!isClickInside) {
+            detailBox.remove();
+            d3.select("body").on("click.detailBox", null);
         }
     });
-
-    return [...new Set(products)];
-}
-
-
-function linkSourceIndex(source) {
-    return typeof source === "object" ? source.index : source;
-}
-
-function splitBySemicolon(value) {
-    return value.split(";").map(v => v.trim()).filter(Boolean);
+    detailBox.on("click", function(event) {
+        event.stopPropagation();
+    });
 }
