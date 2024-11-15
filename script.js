@@ -45,11 +45,6 @@ const outcomeColors = {
     "Other": "#9ffff5"
 };
 
-let ageFilter = 100;
-let weightFilterMin = 0;
-let weightFilterMax = 200;
-let genderFilter = ['male', 'female'];
-
 function createGradient(id, color) {
     const defs = svg.append("defs");
     const gradient = defs.append("linearGradient")
@@ -81,64 +76,282 @@ reportSlider.addEventListener("input", function () {
     updateTreemap();
 });
 
-const ageSlider = document.getElementById("age-slider");
-const weightSliderMin = document.getElementById("weight-slider-min");
-const weightSliderMax = document.getElementById("weight-slider-max");
-const maleCheckbox = document.getElementById("male-checkbox");
-const femaleCheckbox = document.getElementById("female-checkbox");
-const ageValue = document.getElementById("age-value");
-const weightValue = document.getElementById("weight-value");
+let circularFilters = {
+    Weight: { min: 1, max: 200 },
+    Age: { min: 1, max: 100 },
+    Sex: { male: true, female: true }
+};
 
-updateGenderFilter();
+const gap = 2 * Math.PI / 180;
 
-ageSlider.addEventListener("input", function () {
-    ageFilter = parseInt(this.value, 10);
-    ageValue.textContent = this.value + " yrs";
-    updateTreemap();
-});
-
-weightSliderMin.addEventListener("input", function () {
-    weightFilterMin = parseInt(this.value, 10);
-    if (weightFilterMin > weightFilterMax) {
-        weightFilterMax = weightFilterMin;
-        weightSliderMax.value = weightFilterMax;
-        weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}` ;
-    } else {
-        updateWeightDisplay();
+const segments = [
+    {
+        name: 'Weight',
+        startAngle: 0 + gap,
+        endAngle: Math.PI - gap,
+        color: '#7a7a54',
+        range: [1, 200]
+    },
+    {
+        name: 'Age',
+        startAngle: Math.PI + gap,
+        endAngle: Math.PI * 3 / 2 - gap,
+        color: '#62ab5d',
+        range: [1, 100]
+    },
+    {
+        name: 'Sex',
+        startAngle: Math.PI * 3 / 2 + gap,
+        endAngle: 2 * Math.PI - gap,
+        color: '#5c9596',
+        range: [0, 1]
     }
-    updateTreemap();
+];
+
+const circularSliderSVG = d3.select("#circular-slider")
+    .attr("width", 300)
+    .attr("height", 300)
+    .attr("viewBox", "0 0 300 300")
+    .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+    .attr("transform", `translate(88, 150)`);
+
+const sliderRadius = 65;
+const sliderThickness = 20;
+const minHandleDistance = 5;
+
+function createSegmentGradient(id, color) {
+    const defs = circularSliderSVG.append("defs");
+    const gradient = defs.append("linearGradient")
+        .attr("id", id)
+        .attr("x1", "0%")
+        .attr("y1", "0%")
+        .attr("x2", "100%")
+        .attr("y2", "0%");
+
+    gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", d3.color(color).brighter(1));
+
+    gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", d3.color(color).darker(1));
+}
+
+segments.forEach(segment => {
+    const gradientId = `gradient-${segment.name}`;
+    createSegmentGradient(gradientId, segment.color);
+    circularSliderSVG.append("path")
+        .attr("class", "circular-slider-track")
+        .attr("d", d3.arc()
+            .innerRadius(sliderRadius)
+            .outerRadius(sliderRadius + sliderThickness)
+            .startAngle(segment.startAngle)
+            .endAngle(segment.endAngle)()
+        )
+        .attr("fill", `url(#${gradientId})`);
 });
 
-weightSliderMax.addEventListener("input", function () {
-    weightFilterMax = parseInt(this.value, 10);
-    if (weightFilterMax < weightFilterMin) {
-        weightFilterMin = weightFilterMax;
-        weightSliderMin.value = weightFilterMin;
-        weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}`;
+segments.forEach(segment => {
+    segment.selectionArc = circularSliderSVG.append("path")
+        .attr("class", "circular-slider-selection")
+        .attr("fill", `url(#gradient-${segment.name})`);
+    updateSelectionArc(segment);
+});
+
+segments.forEach(segment => {
+    if (segment.name !== 'Sex') {
+        addHandle(segment, 'min');
+        addHandle(segment, 'max');
     } else {
-        updateWeightDisplay();
+        addSexHandle(segment, 'male');
+        addSexHandle(segment, 'female');
     }
-    updateTreemap();
 });
 
-maleCheckbox.addEventListener("change", function () {
-    updateGenderFilter();
-    updateTreemap();
-});
+function addHandle(segment, type) {
+    const initialValue = type === 'min' ? segment.range[0] : segment.range[1];
+    const angle = scaleValueToAngle(initialValue, segment);
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
 
-femaleCheckbox.addEventListener("change", function () {
-    updateGenderFilter();
+    const handle = circularSliderSVG.append("circle")
+        .attr("class", `circular-slider-handle ${segment.name.toLowerCase()}-${type}`)
+        .attr("r", 8)
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("fill", "#fff")
+        .attr("stroke", segment.color)
+        .attr("stroke-width", 2)
+        .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
+        .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); })
+        .call(d3.drag()
+            .on("drag", function(event) { handleDrag(event, segment, type, this); })
+        );
+
+    handle.append("title")
+        .text(type === 'min' ? `${segment.name} Min` : `${segment.name} Max`);
+}
+
+function addSexHandle(segment, type) {
+    const angle = type === 'male' ? segment.startAngle : segment.endAngle;
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
+
+    const handle = circularSliderSVG.append("circle")
+        .attr("class", `circular-slider-handle sex-handle ${type}`)
+        .attr("r", 8)
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff")
+        .attr("stroke", segment.color)
+        .attr("stroke-width", 2)
+        .on("mouseover", function() {
+            d3.select(this).attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffb3b3" : "#b3b3ff") : "#f0f0f0");
+        })
+        .on("mouseout", function() {
+            d3.select(this).attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff");
+        })
+        .call(d3.drag()
+            .on("drag", function(event) { handleSexDrag(event, segment, type, this); })
+        );
+
+    handle.append("title")
+        .text(type.charAt(0).toUpperCase() + type.slice(1));
+}
+
+function handleDrag(event, segment, type, handle) {
+    const mouse = d3.pointer(event, circularSliderSVG.node());
+    let angle = Math.atan2(mouse[1], mouse[0]);
+
+    if (angle < 0) angle += 2 * Math.PI;
+
+    if (angle < segment.startAngle) angle = segment.startAngle;
+    if (angle > segment.endAngle) angle = segment.endAngle;
+
+    const newValue = angleToValue(angle, segment);
+
+    if (type === 'min') {
+        circularFilters[segment.name].min = Math.min(newValue, circularFilters[segment.name].max - minHandleDistance);
+    } else {
+        circularFilters[segment.name].max = Math.max(newValue, circularFilters[segment.name].min + minHandleDistance);
+    }
+
+    updateHandlePosition(handle, segment, type);
+    updateSelectionArc(segment);
+    updateFilterDisplays();
     updateTreemap();
-});
+}
+
+function handleSexDrag(event, segment, type, handle) {
+    const mouse = d3.pointer(event, circularSliderSVG.node());
+    let angle = Math.atan2(mouse[1], mouse[0]);
+
+    if (angle < 0) angle += 2 * Math.PI;
+    if (angle < segment.startAngle) angle = segment.startAngle;
+    if (angle > segment.endAngle) angle = segment.endAngle;
+
+    const midpointAngle = (segment.startAngle + segment.endAngle) / 2;
+    const distanceFromStart = Math.abs(angle - segment.startAngle);
+    const distanceFromEnd = Math.abs(angle - segment.endAngle);
+
+    let isSelected = false;
+    if (type === 'male') {
+        isSelected = distanceFromStart < distanceFromEnd;
+        circularFilters.Sex.male = isSelected;
+    } else if (type === 'female') {
+        isSelected = distanceFromEnd < distanceFromStart;
+        circularFilters.Sex.female = isSelected;
+    }
+
+    d3.select(handle)
+        .attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff");
+
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
+    d3.select(handle)
+        .attr("cx", x)
+        .attr("cy", y);
+
+    updateSelectionArc(segment);
+    updateFilterDisplays();
+    updateTreemap();
+}
+
+function updateHandlePosition(handle, segment, type) {
+    const value = circularFilters[segment.name][type];
+    const angle = scaleValueToAngle(value, segment);
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
+
+    d3.select(handle)
+        .attr("cx", x)
+        .attr("cy", y);
+}
+
+function updateSelectionArc(segment) {
+    if (segment.name === 'Sex') {
+        const deltaAngle = 0.1;
+
+        let pathD = '';
+
+        if (circularFilters.Sex.male) {
+            pathD += d3.arc()
+                .innerRadius(sliderRadius)
+                .outerRadius(sliderRadius + sliderThickness)
+                .startAngle(segment.startAngle)
+                .endAngle(segment.startAngle + deltaAngle)();
+        }
+
+        if (circularFilters.Sex.female) {
+            pathD += d3.arc()
+                .innerRadius(sliderRadius)
+                .outerRadius(sliderRadius + sliderThickness)
+                .startAngle(segment.endAngle - deltaAngle)
+                .endAngle(segment.endAngle)();
+        }
+
+        segment.selectionArc.attr("d", pathD);
+    } else {
+        const startValue = circularFilters[segment.name].min;
+        const endValue = circularFilters[segment.name].max;
+
+        const startAngle = scaleValueToAngle(startValue, segment);
+        const endAngle = scaleValueToAngle(endValue, segment);
+
+        segment.selectionArc.attr("d", d3.arc()
+            .innerRadius(sliderRadius)
+            .outerRadius(sliderRadius + sliderThickness)
+            .startAngle(startAngle)
+            .endAngle(endAngle)()
+        ).attr("fill", `url(#gradient-${segment.name})`);
+    }
+}
+
+function scaleValueToAngle(value, segment) {
+    const ratio = (value - segment.range[0]) / (segment.range[1] - segment.range[0]);
+    return segment.startAngle + ratio * (segment.endAngle - segment.startAngle);
+}
+
+function angleToValue(angle, segment) {
+    const ratio = (angle - segment.startAngle) / (segment.endAngle - segment.startAngle);
+    return Math.round(ratio * (segment.range[1] - segment.range[0]) + segment.range[0]);
+}
+
+function updateFilterDisplays() {
+    d3.select("#age-value-display").text(`${circularFilters.Age.min} - ${circularFilters.Age.max} yrs`);
+    d3.select("#weight-value-display").text(`${circularFilters.Weight.min} - ${circularFilters.Weight.max} kg`);
+    
+    const sexSelection = [];
+    if (circularFilters.Sex.male) sexSelection.push("Male");
+    if (circularFilters.Sex.female) sexSelection.push("Female");
+    d3.select("#sex-value-display").text(sexSelection.length === 0 ? "None" : sexSelection.join(" & "));
+}
+
+updateFilterDisplays();
 
 function updateWeightDisplay() {
     weightValue.textContent = `${weightFilterMin} - ${weightFilterMax}`;
-}
-
-function updateGenderFilter() {
-    genderFilter = [];
-    if (maleCheckbox.checked) genderFilter.push('male');
-    if (femaleCheckbox.checked) genderFilter.push('female');
 }
 
 function splitBySemicolon(value) {
@@ -235,21 +448,24 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
 
         if (!(startDateValid && endDateValid)) return false;
 
-        if (ageFilter < 100) {
+        if (circularFilters.Age.min > 1 || circularFilters.Age.max < 100) {
             if (report.PatientAge === 'unknown') return false;
             const age = parseInt(report.PatientAge, 10);
-            if (isNaN(age) || age > ageFilter) return false;
+            if (isNaN(age) || age < circularFilters.Age.min || age > circularFilters.Age.max) return false;
         }
 
-        if (weightFilterMin > 0 || weightFilterMax < 200) {
+        if (circularFilters.Weight.min > 0 || circularFilters.Weight.max < 200) {
             if (report.PatientWeight === 'unknown') return false;
             const weight = parseFloat(report.PatientWeight);
-            if (isNaN(weight) || weight < weightFilterMin || weight > weightFilterMax) return false;
+            if (isNaN(weight) || weight < circularFilters.Weight.min || weight > circularFilters.Weight.max) return false;
         }
 
-        if (genderFilter.length < 2) {
+        if (!(circularFilters.Sex.min === 0 && circularFilters.Sex.max === 1)) {
             if (report.PatientSex === 'unknown') return false;
-            if (!genderFilter.includes(report.PatientSex)) return false;
+            if (circularFilters.Sex.min === 0 && circularFilters.Sex.max === 0 && report.PatientSex !== 'male') return false;
+            if (circularFilters.Sex.min === 1 && circularFilters.Sex.max === 1 && report.PatientSex !== 'female') return false;
+            if (circularFilters.Sex.min === 0 && circularFilters.Sex.max === 1) {
+            }
         }
 
         return true;
@@ -447,13 +663,13 @@ function drawTreemap(data) {
             tooltip.transition().duration(500).style("opacity", 0);
         });
 
-        countries.append("text")
-        .attr("x", function (d) {
+    countries.append("text")
+        .attr("x", function(d) {
             return (d.x1 - d.x0) / 2;
         })
         .attr("y", -5)
         .attr("dy", "0")
-        .text(function (d) {
+        .text(function(d) {
             return d.data.key;
         })
         .attr("font-size", "10px")
@@ -475,13 +691,13 @@ function drawTreemap(data) {
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
         .attr("stroke-width", 0)
-        .on("click", function (event, d) {
+        .on("click", function(event, d) {
             stopAllBeating();
             triggerBeatingForProduct([d.data.key]);
             showProductInfo(d.data);
         });
 
-    products.each(function (d) {
+    products.each(function(d) {
         const productG = d3.select(this);
         const productRect = productG.select(".product-outer");
         const productHeight = d.y1 - d.y0;
