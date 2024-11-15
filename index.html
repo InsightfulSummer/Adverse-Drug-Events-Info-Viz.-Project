@@ -99,18 +99,11 @@
 
         <div id="filter-container">
             <h3></h3>
-            <label for="age-slider">Age:</label>
-            <input type="range" id="age-slider" min="1" max="100" value="100">
-            <span id="age-value">100 yrs</span>
-
-            <label for="weight-slider">Weight (kg):</label>
-            <input type="range" id="weight-slider-min" min="0" max="200" value="0">
-            <input type="range" id="weight-slider-max" min="0" max="200" value="200">
-            <span id="weight-value">0 - 200 kg</span>
-
-            <div>
-                <label><input type="checkbox" id="male-checkbox" checked> Male</label>
-                <label><input type="checkbox" id="female-checkbox" checked> Female</label>
+            <svg id="circular-slider"></svg>
+            <div id="filter-values">
+                <p>Age: <span id="age-value-display">1 - 100 yrs</span></p>
+                <p>Weight: <span id="weight-value-display">1 - 200 kg</span></p>
+                <p>Sex: <span id="sex-value-display">Male & Female</span></p>
             </div>
         </div>
 

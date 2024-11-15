@@ -169,8 +169,12 @@ h4 {
     overflow: visible;
     width: 80vw;
     height: 80vh;
+<<<<<<< HEAD
     margin: 20px;
 >>>>>>> d85a6ad (Adding project files)
+=======
+    margin-left: 70px;
+>>>>>>> b77150b (filters updated)
 }
 
 #info-panel {
@@ -920,25 +924,64 @@ h4 {
 
 #filter-container {
     position: absolute;
-    left: 20px;
+    left: 0px;
     top: 250px;
-    width: 100px;
-    background: #ffffff;
-    padding: 10px;
-    border-radius: 5px;
+    width: 120px;
+    height: 450px;
+    background: #ffffff00;
+    padding: 5px;
+    border-radius: 10px;
+    text-align: center;
 }
 
-#filter-container h3 {
-    margin-top: 0;
+#filter-values {
+    margin-left: 10px;
+    margin-bottom: 500px;
+    font-size: 14px;
 }
 
-#filter-container label {
-    display: block;
-    margin-top: 10px;
+#filter-values p {
+    margin: 15px 0;
 }
 
-#filter-container input[type="range"] {
-    width: 100%;
+.circular-slider-track {
+    fill: linear-gradient(to right, #d5d5d5, #7a7a54, #62ab5d, #5c9596, #589b90);
+    stroke-width: 2;
+}
+
+.circular-slider-selection {
+    fill-opacity: 0;
+    pointer-events: none;
+}
+
+.circular-slider-handle.beating {
+    animation: beat 1s infinite;
+}
+
+.circular-slider-handle:hover {
+    fill: #f0f0f0;
+}
+
+.circular-slider-handle.sex-handle {
+    stroke: #ff9676;
+}
+
+.circular-slider-handle.active {
+    fill: #000000;
+    stroke: #ff562200;
+}
+
+.slider-label {
+    font-size: 12px;
+    fill: #000000;
+    text-anchor: middle;
+    -o-table-baseline: middle;
+}
+
+.circular-slider-selection {
+    stroke: rgba(255, 255, 255, 0);
+    stroke-width: 20;
+    opacity: 0.7;
 }
 
 #search-results {
