@@ -555,100 +555,145 @@ d3.csv("data.csv", function (d, i) {
         .range(["#ccffcc", "#00cc00", "#006400"])
         .interpolate(d3.interpolateHcl);
 
-    document.getElementById('search-bar').addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-        stopAllBeating();
-
-        d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
-
-        const dropdown = d3.select("#search-dropdown");
-
-        if (query) {
-            let totalMatches = 0;
-            let productMatches = 0;
-            let countryMatches = 0;
-            let reactionMatches = 0;
-            let indicationMatches = 0;
-
-            const matchedProducts = new Set();
-            const matchedCountries = new Set();
-            const matchedReactions = new Set();
-            const matchedIndications = new Set();
-
-            d3.selectAll(".product").each(function (d) {
-                const productName = d.data.key.toLowerCase();
-                const countryName = d.parent.data.key.toLowerCase();
-
-                let isMatch = false;
-
-                if (productName.includes(query)) {
-                    matchedProducts.add(d.data.key);
-                    isMatch = true;
-                }
-
-                if (countryName.includes(query)) {
-                    matchedCountries.add(d.parent.data.key);
-                    isMatch = true;
-                }
-
-                if (isMatch) {
-                    const productRect = d3.select(this).select(".product-outer");
-                    productRect.classed("highlight", true).classed("beating", true);
-                }
-            });
-
-            originalData.forEach(report => {
-                const reactions = splitBySemicolon(report.Reactions).map(r => r.toLowerCase());
-                reactions.forEach(reaction => {
-                    if (reaction.includes(query)) {
-                        matchedReactions.add(reaction);
+        document.getElementById('search-bar').addEventListener('input', function () {
+            const query = this.value.toLowerCase().trim();
+            stopAllBeating();
+        
+            d3.selectAll(".product-outer").classed("highlight", false).classed("beating", false);
+        
+            const dropdown = d3.select("#search-dropdown");
+        
+            if (query) {
+                let totalMatches = 0;
+                let productMatches = 0;
+                let countryMatches = 0;
+                let reactionMatches = 0;
+                let indicationMatches = 0;
+                let genericNameMatches = 0;
+                let brandNameMatches = 0;
+        
+                const matchedProducts = new Set();
+                const matchedCountries = new Set();
+                const matchedReactions = new Set();
+                const matchedIndications = new Set();
+                const matchedGenericNames = new Set();
+                const matchedBrandNames = new Set();
+        
+                d3.selectAll(".product").each(function (d) {
+                    const productName = d.data.key.toLowerCase();
+                    const countryName = d.parent.data.key.toLowerCase();
+        
+                    let isMatch = false;
+        
+                    if (productName.includes(query)) {
+                        matchedProducts.add(d.data.key);
+                        isMatch = true;
+                    }
+        
+                    if (countryName.includes(query)) {
+                        matchedCountries.add(d.parent.data.key);
+                        isMatch = true;
+                    }
+        
+                    const genericNames = d.data.reports
+                        .map(report => splitBySemicolon(report.GenericName))
+                        .flat()
+                        .map(name => name.toLowerCase());
+        
+                    genericNames.forEach(genericName => {
+                        if (genericName.includes(query)) {
+                            matchedGenericNames.add(genericName);
+                            matchedProducts.add(d.data.key);
+                        }
+                    });
+        
+                    const brandNames = d.data.reports
+                        .map(report => splitBySemicolon(report.BrandName))
+                        .flat()
+                        .map(name => name.toLowerCase());
+        
+                    brandNames.forEach(brandName => {
+                        if (brandName.includes(query)) {
+                            matchedBrandNames.add(brandName);
+                            matchedProducts.add(d.data.key);
+                        }
+                    });
+        
+                    if (isMatch) {
+                        const productRect = d3.select(this).select(".product-outer");
+                        productRect.classed("highlight", true).classed("beating", true);
                     }
                 });
-
-                const indications = splitBySemicolon(report.DrugIndication).map(i => i.toLowerCase());
-                indications.forEach(indication => {
-                    if (indication.includes(query)) {
-                        matchedIndications.add(indication);
-                    }
+        
+                originalData.forEach(report => {
+                    const reactions = splitBySemicolon(report.Reactions).map(r => r.toLowerCase());
+                    reactions.forEach(reaction => {
+                        if (reaction.includes(query)) {
+                            matchedReactions.add(reaction);
+                            matchedProducts.add(report.Medicinalproduct);
+                        }
+                    });
+        
+                    const indications = splitBySemicolon(report.DrugIndication).map(i => i.toLowerCase());
+                    indications.forEach(indication => {
+                        if (indication.includes(query)) {
+                            matchedIndications.add(indication);
+                            matchedProducts.add(report.Medicinalproduct);
+                        }
+                    });
                 });
-            });
-
-            productMatches = matchedProducts.size;
-            countryMatches = matchedCountries.size;
-            reactionMatches = matchedReactions.size;
-            indicationMatches = matchedIndications.size;
-            totalMatches = productMatches + countryMatches + reactionMatches + indicationMatches;
-
-            let dropdownContent = `<strong>${totalMatches} match${totalMatches !== 1 ? 'es' : ''} found</strong><br/>`;
-
-            if (productMatches > 0) {
-                dropdownContent += `${productMatches} Medicinal Product${productMatches !== 1 ? 's' : ''}<br/>`;
+        
+                productMatches = matchedProducts.size;
+                countryMatches = matchedCountries.size;
+                reactionMatches = matchedReactions.size;
+                indicationMatches = matchedIndications.size;
+                genericNameMatches = matchedGenericNames.size;
+                brandNameMatches = matchedBrandNames.size;
+                totalMatches = productMatches + countryMatches + reactionMatches + indicationMatches + genericNameMatches + brandNameMatches;
+        
+                matchedProducts.forEach(product => {
+                    d3.selectAll(".product-outer")
+                        .filter(function (d) { return d.data.key === product; })
+                        .classed("beating", true);
+                });
+        
+                let dropdownContent = `<strong>${totalMatches} match${totalMatches !== 1 ? 'es' : ''} found</strong><br/>`;
+        
+                if (productMatches > 0) {
+                    dropdownContent += `${productMatches} Medicinal Product${productMatches !== 1 ? 's' : ''}<br/>`;
+                }
+                if (countryMatches > 0) {
+                    dropdownContent += `${countryMatches} Country${countryMatches !== 1 ? 's' : ''}<br/>`;
+                }
+                if (reactionMatches > 0) {
+                    dropdownContent += `${reactionMatches} Reaction${reactionMatches !== 1 ? 's' : ''}<br/>`;
+                }
+                if (indicationMatches > 0) {
+                    dropdownContent += `${indicationMatches} Indication${indicationMatches !== 1 ? 's' : ''}<br/>`;
+                }
+                if (genericNameMatches > 0) {
+                    dropdownContent += `${genericNameMatches} Generic Name${genericNameMatches !== 1 ? 's' : ''}<br/>`;
+                }
+                if (brandNameMatches > 0) {
+                    dropdownContent += `${brandNameMatches} Brand Name${brandNameMatches !== 1 ? 's' : ''}<br/>`;
+                }
+        
+                dropdown.html(dropdownContent)
+                    .style("display", "block")
+                    .style("background", "#fff")
+                    .style("border", "1px solid #ccc")
+                    .style("padding", "10px")
+                    .style("position", "absolute")
+                    .style("width", "160px")
+                    .style("box-shadow", "0px 4px 8px rgba(0, 0, 0, 0.1)")
+                    .style("z-index", "1000")
+                    .style("top", (document.getElementById("search-bar").offsetTop + document.getElementById("search-bar").offsetHeight + 5) + "px")
+                    .style("left", document.getElementById("search-bar").offsetLeft + "px");
+            } else {
+                d3.select("#search-dropdown").style("display", "none");
             }
-            if (countryMatches > 0) {
-                dropdownContent += `${countryMatches} Country${countryMatches !== 1 ? '' : ''}<br/>`;
-            }
-            if (reactionMatches > 0) {
-                dropdownContent += `${reactionMatches} Reaction${reactionMatches !== 1 ? 's' : ''}<br/>`;
-            }
-            if (indicationMatches > 0) {
-                dropdownContent += `${indicationMatches} Indication${indicationMatches !== 1 ? 's' : ''}<br/>`;
-            }
-
-            dropdown.html(dropdownContent)
-                .style("display", "block")
-                .style("background", "#fff")
-                .style("border", "1px solid #ccc")
-                .style("padding", "10px")
-                .style("position", "absolute")
-                .style("width", "120px")
-                .style("box-shadow", "0px 4px 8px rgba(0, 0, 0, 0.1)")
-                .style("z-index", "1000")
-                .style("top", (document.getElementById("search-bar").offsetTop + document.getElementById("search-bar").offsetHeight + 5) + "px")
-                .style("left", document.getElementById("search-bar").offsetLeft + "px");
-        } else {
-            d3.select("#search-dropdown").style("display", "none");
-        }
-    });
+        });
+        
 
     document.addEventListener('click', function(event) {
         const searchBar = document.getElementById('search-bar');
@@ -1160,7 +1205,7 @@ function triggerBeatingForProduct(products) {
 }
 
 function normalizeName(name) {
-    return name.trim().toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '');
+    return name.trim();
 }
 
 function showProductInfo(productData) {
@@ -1175,13 +1220,13 @@ function showProductInfo(productData) {
         productData.reports.forEach(report => {
             splitBySemicolon(report.DrugIndication).forEach(indication => {
                 if (indication) {
-                    const normalizedIndication = normalizeName(indication);
+                    const normalizedIndication = indication.trim();
                     indicationCounts[normalizedIndication] = (indicationCounts[normalizedIndication] || 0) + 1;
                 }
             });
             splitBySemicolon(report.Reactions).forEach(reaction => {
                 if (reaction) {
-                    const normalizedReaction = normalizeName(reaction);
+                    const normalizedReaction = reaction.trim();
                     reactionCounts[normalizedReaction] = (reactionCounts[normalizedReaction] || 0) + 1;
                 }
             });
@@ -1191,57 +1236,33 @@ function showProductInfo(productData) {
     const allIndications = Object.keys(indicationCounts).sort();
     const allReactions = Object.keys(reactionCounts).sort();
 
-    sankeyPaginationState.indications.totalPages = Math.ceil(allIndications.length / sankeyPaginationState.indications.pageSize);
-    sankeyPaginationState.reactions.totalPages = Math.ceil(allReactions.length / sankeyPaginationState.reactions.pageSize);
-    sankeyPaginationState.reports.totalPages = Math.ceil(productData.reports.length / sankeyPaginationState.reports.pageSize);
-
-    const currentIndicationPage = sankeyPaginationState.indications.currentPage;
-    const currentReactionPage = sankeyPaginationState.reactions.currentPage;
-    const currentReportPage = sankeyPaginationState.reports.currentPage;
-
-    const paginatedIndications = allIndications.slice(
-        currentIndicationPage * sankeyPaginationState.indications.pageSize,
-        (currentIndicationPage + 1) * sankeyPaginationState.indications.pageSize
-    );
-    const paginatedReactions = allReactions.slice(
-        currentReactionPage * sankeyPaginationState.reactions.pageSize,
-        (currentReactionPage + 1) * sankeyPaginationState.reactions.pageSize
-    );
-
-    const paginatedReports = productData.reports.slice(
-        currentReportPage * sankeyPaginationState.reports.pageSize,
-        (currentReportPage + 1) * sankeyPaginationState.reports.pageSize
-    );
-
     const nodes = [
-        ...paginatedIndications.map(name => ({ id: `ind_${normalizeName(name)}`, name, type: 'indication' })),
-        { id: `prod_${normalizeName(productData.key)}`, name: productData.key, type: 'product', clickedOnce: false },
-        ...paginatedReactions.map(name => ({ id: `reac_${normalizeName(name)}`, name, type: 'reaction' })),
+        ...allIndications.map(name => ({ id: `ind_${name}`, name, type: 'indication' })),
+        { id: `prod_${productData.key}`, name: productData.key, type: 'product', clickedOnce: false },
+        ...allReactions.map(name => ({ id: `reac_${name}`, name, type: 'reaction' })),
     ];
 
     const links = [
-        ...paginatedIndications.map(name => ({
-            source: `ind_${normalizeName(name)}`,
-            target: `prod_${normalizeName(productData.key)}`,
+        ...allIndications.map(name => ({
+            source: `ind_${name}`,
+            target: `prod_${productData.key}`,
             value: indicationCounts[name],
         })),
-        ...paginatedReactions.map(name => ({
-            source: `prod_${normalizeName(productData.key)}`,
-            target: `reac_${normalizeName(name)}`,
+        ...allReactions.map(name => ({
+            source: `prod_${productData.key}`,
+            target: `reac_${name}`,
             value: reactionCounts[name],
         })),
     ];
 
     drawSankeyDiagram(nodes, links);
-
-    createSankeyPaginationControls(allIndications.length, allReactions.length, productData.reports.length);
 }
 
-
+const internalMargin = { left: 10, right: 100 };
 
 function drawSankeyDiagram(nodesData, linksData) {
     const sankeyWidth = 1450;
-    const sankeyHeight = 1000;
+    const sankeyHeight = Math.max(1000, nodesData.length * 50);
 
     const sankeySvg = d3.select("#sankey-container")
         .append("svg")
@@ -1252,9 +1273,10 @@ function drawSankeyDiagram(nodesData, linksData) {
     const sankey = d3.sankey()
         .nodeWidth(20)
         .nodePadding(20)
-        .extent([[1, 1], [sankeyWidth - 1, sankeyHeight - 6]])
+        .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 6]])
         .nodeAlign(d3.sankeyCenter)
         .nodeSort(null);
+
 
     let graph = {
         nodes: nodesData.map(d => Object.assign({}, d)),
@@ -1265,28 +1287,27 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function drawSankeyGraph(graph) {
         sankeySvg.selectAll("*").remove();
-    
+
         const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
-    
+
         graph.links.forEach(link => {
             link.source = idToNode.get(link.source.id || link.source);
             link.target = idToNode.get(link.target.id || link.target);
         });
-    
+
         assignNodeLayers(graph.nodes);
         adjustLayers(graph.nodes, sankeyWidth);
-    
+
         sankey(graph);
-    
+
         const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
         const translateX = (sankeyWidth - diagramWidth) / 2;
-    
+
         const diagramGroup = sankeySvg.append("g")
             .attr("transform", `translate(${translateX},0)`);
-    
+
         drawSankeyElements(diagramGroup, graph);
     }
-    
     
     function assignNodeLayers(nodes) {
         nodes.forEach(node => {
@@ -1305,7 +1326,6 @@ function drawSankeyDiagram(nodesData, linksData) {
             }
         });
     }
-    
 
     function adjustLayers(nodes, sankeyWidth) {
         const totalLayers = 5;
@@ -1334,7 +1354,6 @@ function drawSankeyDiagram(nodesData, linksData) {
             nodeData.clickedOnce = true;
         }
     }
-    
 
     function expandNode(nodeData, graph) {
         sankeyState.expandedNode = nodeData.id;
@@ -1361,13 +1380,15 @@ function drawSankeyDiagram(nodesData, linksData) {
                 graph.links.push({
                     source: reportDetailNode.id,
                     target: nodeData.id,
-                    value: 1
+                    value: 1,
+                    report: report
                 });
             } else if (nodeData.type === "reaction") {
                 graph.links.push({
                     source: nodeData.id,
                     target: reportDetailNode.id,
-                    value: 1
+                    value: 1,
+                    report: report
                 });
             }
         });
@@ -1388,7 +1409,7 @@ function drawSankeyDiagram(nodesData, linksData) {
         });
     
         drawSankeyGraph(graph);
-    }    
+    }       
     
     function collapseNode(nodeData, graph) {
         sankeyState.expandedNode = null;
@@ -1398,126 +1419,202 @@ function drawSankeyDiagram(nodesData, linksData) {
         );
 
         graph.links = graph.links.filter(link => {
-            return !(link.source.startsWith('detail_') || link.target.startsWith('detail_'));
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            const targetId = typeof link.target === 'object' ? link.target.id : link.target;
+            return !(sourceId.startsWith('detail_') || targetId.startsWith('detail_'));
         });
 
         drawSankeyGraph(graph);
     }
 
-    function drawSankeyElements(sankeySvg, graph) {
+    function drawSankeyElements(diagramGroup, graph) {
         const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-        const MIN_LINK_WIDTH = 10;
-        const MAX_LINK_WIDTH = 50;
         const maxReportCount = d3.max(graph.links, d => d.value) || 1;
-
-    const strokeWidthScale = d3.scaleLinear()
-        .domain([1, maxReportCount])
-        .range([MIN_LINK_WIDTH, MAX_LINK_WIDTH])
-        .clamp(true);
-
-    sankeySvg.append("g")
-        .selectAll("path")
-        .data(graph.links)
-        .enter()
-        .append("path")
-        .attr("d", d3.sankeyLinkHorizontal())
-        .attr("fill", "none")
-        .attr("stroke", d => {
-            if (d.source.type === "indication" || d.target.type === "indication") {
-                const indicationName = d.source.type === "indication" ? d.source.name : d.target.name;
-                const count = window.totalIndicationCounts[indicationName] || 0;
-                return indicationColorScale(count);
-            } else if (d.source.type === "reaction" || d.target.type === "reaction") {
-                const reactionName = d.source.type === "reaction" ? d.source.name : d.target.name;
-                const count = window.totalReactionCounts[reactionName] || 0;
-                return reactionColorScale(count);
-            } else {
-                return "#888";
-            }
-        })
-        .attr("stroke-width", d => strokeWidthScale(d.value))
-        .attr("opacity", 0.8)
-        .on("mouseover", function (event, d) {
-            tooltip.transition().duration(200).style("opacity", 1);
-            tooltip.html(`${d.value} report${d.value !== 1 ? 's' : ''}`)
-                .style("left", `${event.pageX + 5}px`)
-                .style("top", `${event.pageY - 28}px`);
-        })
-        .on("mouseout", function () {
-            tooltip.transition().duration(500).style("opacity", 0);
-        });
-
-    const node = sankeySvg.append("g")
-        .selectAll("g")
-        .data(graph.nodes)
-        .enter()
-        .append("g")
-        .attr("data-node-id", d => d.id);
-
-    node.append("rect")
-        .attr("x", d => d.x0)
-        .attr("y", d => d.y0)
-        .attr("width", d => d.x1 - d.x0)
-        .attr("height", d => d.y1 - d.y0)
-        .attr("fill", d => {
-            if (d.type === "indication") {
-                const count = window.totalIndicationCounts[d.name] || 0;
-                return indicationColorScale(count);
-            }
-            if (d.type === "reaction") {
-                const count = window.totalReactionCounts[d.name] || 0;
-                return reactionColorScale(count);
-            }
-            if (d.type === "report_detail") {
-                return outcomeColors[d.report.Outcome] || "#87ceeb";
-            }
-            return colorScale(d.name);
-        })
-        .attr("stroke", d => {
-            if (d.type === "indication") return "darkgreen";
-            if (d.type === "reaction") return "darkred";
-            if (d.type === "report_detail") return "#4682b4";
-            return "#000";
-        })
-        .attr("stroke-width", 1)
-        .on("click", function (event, d) {
-            if (d.type === "indication" || d.type === "reaction") {
-                if (!d3.select(this).classed("beating")) {
-                    const associatedProducts = findProductsByReactionOrIndication(d.type, d.name);
-                    beatingProducts = associatedProducts;
-                    triggerBeatingForProduct(associatedProducts);
-                    d3.select(this).classed("beating", true);
-                } else {
-                    toggleNodeExpansion(d, graph);
-                }
-            } else if (d.type === 'report_detail') {
-                event.stopPropagation();
-                stopAllBeating();
-                d3.selectAll(".report_detail").classed("beating", false);
-                d3.select(this).classed("beating", true);
-                showReportDetails(event, d);
-            }
-        })
-        .on("mouseover", function (event, d) {
-            if (d.type === 'report_detail') {
-                const report = d.report;
-                const tooltipContent = `${report.SafetyreportID} | ${report.PatientAge} years | ${capitalize(report.PatientSex)} | ${report.PatientWeight} kg`;
-                tooltip.transition().duration(200).style("opacity", 1);
-                tooltip.html(tooltipContent)
-                    .style("left", `${event.pageX + 5}px`)
-                    .style("top", `${event.pageY - 28}px`);
-            } else {
-                tooltip.transition().duration(200).style("opacity", 1);
-                tooltip.html(`${d.name}`)
-                    .style("left", `${event.pageX + 5}px`)
-                    .style("top", `${event.pageY - 28}px`);
-            }
-        })
-        .on("mouseout", function () {
-            tooltip.transition().duration(500).style("opacity", 0);
-        });
-}
     
+        const indicationColorScale = d3.scaleLinear()
+            .domain([0, d3.max(Object.values(window.totalIndicationCounts)) / 2, d3.max(Object.values(window.totalIndicationCounts))])
+            .range(["#ccffcc", "#00cc00", "#006400"])
+            .interpolate(d3.interpolateHcl);
+        
+        const reactionColorScale = d3.scaleLinear()
+            .domain([0, d3.max(Object.values(window.totalReactionCounts)) / 2, d3.max(Object.values(window.totalReactionCounts))])
+            .range(["#ffcccc", "#ff0000", "#8B0000"])
+            .interpolate(d3.interpolateHcl);
+        
+        const link = diagramGroup.append("g")
+            .attr("class", "links")
+            .selectAll("path")
+            .data(graph.links)
+            .enter()
+            .append("path")
+            .attr("d", d3.sankeyLinkHorizontal())
+            .attr("fill", "none")
+            .attr("stroke", d => {
+                if (d.source.type === "indication" || d.target.type === "indication") {
+                    const indicationName = d.source.type === "indication" ? d.source.name : d.target.name;
+                    const count = window.totalIndicationCounts[indicationName] || 0;
+                    return indicationColorScale(count);
+                } else if (d.source.type === "reaction" || d.target.type === "reaction") {
+                    const reactionName = d.source.type === "reaction" ? d.source.name : d.target.name;
+                    const count = window.totalReactionCounts[reactionName] || 0;
+                    return reactionColorScale(count);
+                } else {
+                    return "#888";
+                }
+            })
+            .attr("stroke-width", d => d.width)
+            .attr("opacity", 0.8)
+            .on("mouseover", function (event, d) {
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`${d.value} report${d.value !== 1 ? 's' : ''}`)
+                    .style("left", `${event.pageX + 5}px`)
+                    .style("top", `${event.pageY - 28}px`);
+            })
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+    
+        const defs = diagramGroup.append("defs");
+    
+        defs.selectAll("path.link-label-path")
+            .data(graph.links)
+            .enter()
+            .append("path")
+            .attr("class", "link-label-path")
+            .attr("id", d => `link-label-path-${d.source.id}-${d.target.id}`)
+            .attr("d", d3.sankeyLinkHorizontal())
+            .attr("fill", "none")
+            .attr("stroke", "none");
+    
+        const linkLabels = diagramGroup.append("g")
+            .attr("class", "link-labels")
+            .selectAll("text.link-label")
+            .data(graph.links)
+            .enter()
+            .append("text")
+            .attr("class", "link-label")
+            .attr("dy", "0.35em")
+            .attr("fill", "#000")
+            .attr("pointer-events", "none")
+            .style("font-size", d => {
+                const minFont = 8;
+                const maxFont = 12;
+                const scaledSize = Math.min(d.width / 2, maxFont);
+                return `${Math.max(scaledSize, minFont)}px`;
+            })
+            .append("textPath")
+            .attr("href", d => `#link-label-path-${d.source.id}-${d.target.id}`)
+            .attr("startOffset", d => {
+                if (d.source.type === "indication" && d.target.type === "product") {
+                    return "5%";
+                } else if (d.source.type === "product" && d.target.type === "reaction") {
+                    return "95%";
+                } else if (d.source.type === "patient_detail") {
+                    return "5%";
+                } else if (d.target.type === "patient_detail") {
+                    return "95%";
+                }
+                return "50%";
+            })
+            .attr("text-anchor", d => {
+                if (d.source.type === "indication" && d.target.type === "product") {
+                    return "start";
+                } else if (d.source.type === "product" && d.target.type === "reaction") {
+                    return "end";
+                } else if (d.source.type === "patient_detail") {
+                    return "start";
+                } else if (d.target.type === "patient_detail") {
+                    return "end";
+                }
+                return "middle";
+            })
+            .text(d => {
+                if (d.source.type === "indication" && d.target.type === "product") {
+                    return d.source.name;
+                } else if (d.source.type === "product" && d.target.type === "reaction") {
+                    return d.target.name;
+                } else if (d.source.type === "patient_detail") {
+                    return getPatientDetails(d.source.report);
+                } else if (d.target.type === "patient_detail") {
+                    return getPatientDetails(d.target.report);
+                }
+                return "";
+            });
+    
+        linkLabels.selectAll("textPath")
+            .attr("dominant-baseline", "middle")
+            .style("pointer-events", "none");
+    
+        const nodeGroup = diagramGroup.append("g")
+            .selectAll("g")
+            .data(graph.nodes)
+            .enter()
+            .append("g")
+            .attr("data-node-id", d => d.id);
+    
+        nodeGroup.append("rect")
+            .attr("x", d => d.x0)
+            .attr("y", d => d.y0)
+            .attr("width", d => d.x1 - d.x0)
+            .attr("height", d => d.y1 - d.y0)
+            .attr("fill", d => {
+                if (d.type === "indication") {
+                    const count = window.totalIndicationCounts[d.name] || 0;
+                    return indicationColorScale(count);
+                }
+                if (d.type === "reaction") {
+                    const count = window.totalReactionCounts[d.name] || 0;
+                    return reactionColorScale(count);
+                }
+                if (d.type === "report_detail") {
+                    return outcomeColors[d.report.Outcome] || "#87ceeb";
+                }
+                return colorScale(d.name);
+            })
+            .attr("stroke", d => {
+                if (d.type === "indication") return "darkgreen";
+                if (d.type === "reaction") return "darkred";
+                if (d.type === "report_detail") return "#4682b4";
+                return "#000";
+            })
+            .attr("stroke-width", 1)
+            .on("click", function (event, d) {
+                if (d.type === "indication" || d.type === "reaction") {
+                    if (!d3.select(this).classed("beating")) {
+                        const associatedProducts = findProductsByReactionOrIndication(d.type, d.name);
+                        beatingProducts = associatedProducts;
+                        triggerBeatingForProduct(associatedProducts);
+                        d3.select(this).classed("beating", true);
+                    } else {
+                        toggleNodeExpansion(d, graph);
+                    }
+                } else if (d.type === 'report_detail') {
+                    event.stopPropagation();
+                    stopAllBeating();
+                    d3.selectAll(".report_detail").classed("beating", false);
+                    d3.select(this).classed("beating", true);
+                    showReportDetails(event, d);
+                }
+            })
+            .on("mouseover", function (event, d) {
+                if (d.type === 'report_detail') {
+                    const report = d.report;
+                    const tooltipContent = `${report.SafetyreportID} | ${report.PatientAge} years | ${capitalize(report.PatientSex)} | ${report.PatientWeight} kg`;
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(tooltipContent)
+                        .style("left", `${event.pageX + 5}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                } else {
+                    tooltip.transition().duration(200).style("opacity", 1);
+                    tooltip.html(`${d.name}`)
+                        .style("left", `${event.pageX + 5}px`)
+                        .style("top", `${event.pageY - 28}px`);
+                }
+            })
+            .on("mouseout", function () {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+    }    
 
     function findProductsByReactionOrIndication(type, name) {
         const products = [];
@@ -1560,21 +1657,50 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function showReportDetails(event, d) {
         d3.selectAll(".detail-box").remove();
+        d3.select("body").on("click.detailBox", null);
     
-        const x = event.pageX + 20;
-        const y = event.pageY - 20;
+        const margin = 20;
+        const boxWidth = 300;
+        const boxHeight = 200;
+        const xSpace = 20;
+        const ySpace = 20;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+    
+        let x = event.clientX + xSpace;
+        let y = event.clientY + ySpace;
+    
+        if (x + boxWidth > viewportWidth) {
+            x = event.clientX - boxWidth - xSpace;
+        }
+    
+        if (y + boxHeight > viewportHeight) {
+            y = event.clientY - boxHeight - ySpace;
+        }
+    
+        if (x < margin) x = margin;
+        if (y < margin) y = margin;
     
         const detailBox = d3.select("body")
             .append("div")
             .attr("class", "detail-box")
-            .style("position", "absolute")
+            .style("position", "fixed")
             .style("left", `${x}px`)
             .style("top", `${y}px`)
-            .style("pointer-events", "auto");
+            .style("pointer-events", "auto")
+            .style("width", `${boxWidth}px`)
+            .style("max-height", `${boxHeight}px`)
+            .style("overflow-y", "auto")
+            .style("background", "#fff")
+            .style("border", "1px solid #ccc")
+            .style("padding", "10px")
+            .style("box-shadow", "0 4px 8px rgba(0,0,0,0.2)")
+            .style("z-index", 1000)
+            .html("");
     
         const report = d.report;
         const medicinalProduct = report.Medicinalproduct || null;
-        const dosage = report.Dosage && report.Dosage !== 'unknown' ? report.Dosage : null;
+        const dosage = report.DosageText && report.DosageText !== 'unknown' ? report.DosageText : null;
         const treatmentDuration = report.TreatmentDuration && report.TreatmentDuration !== 'unknown' ? report.TreatmentDuration : null;
         const startDate = report.StartDate && report.StartDate !== 'unknown' ? formatDate(report.StartDate) : null;
         const endDate = report.EndDate && report.EndDate !== 'unknown' ? formatDate(report.EndDate) : null;
@@ -1606,17 +1732,17 @@ function drawSankeyDiagram(nodesData, linksData) {
         }
     
         if (indications.length > 0) {
-            message += ` for <span class="indications">${indications.join(", ")}</span> Indications and`;
+            message += ` for <span class="indications">${indications.join(", ")}</span> Indications`;
         }
     
         if (reactions.length > 0) {
-            message += ` got <span class="reactions">${reactions.join(", ")}</span> reactions.`;
+            message += ` and got <span class="reactions">${reactions.join(", ")}</span> reactions.`;
         } else {
             message += ` without any reported reactions.`;
         }
     
         if (indications.length === 0 && reactions.length === 0) {
-            message = message.replace(/ and these reactions: .* reactions\./, ".");
+            message = message.replace(/ and got .* reactions\./, ".");
         }
         if (!message.endsWith(".")) {
             message += ".";
@@ -1624,8 +1750,7 @@ function drawSankeyDiagram(nodesData, linksData) {
         detailBox.html(message);
     
         d3.select("body").on("click.detailBox", function(evt) {
-            const isClickInside = detailBox.node().contains(evt.target);
-            if (!isClickInside) {
+            if (!detailBox.node().contains(evt.target)) {
                 detailBox.remove();
                 d3.select("body").on("click.detailBox", null);
                 stopAllBeating();
@@ -1636,6 +1761,7 @@ function drawSankeyDiagram(nodesData, linksData) {
             event.stopPropagation();
         });
     }
+    
 }
 
 function showTooltip(element, text) {
@@ -1660,3 +1786,180 @@ function capitalize(str) {
     if (str.length === 0) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+
+const toggleBtn = document.getElementById('toggle-structure-btn');
+const structureBox = document.getElementById('structure-box');
+
+function toggleStructureBox(event) {
+    event.stopPropagation();
+    structureBox.classList.toggle('visible');
+}
+
+toggleBtn.addEventListener('click', toggleStructureBox);
+
+document.addEventListener('click', function(event) {
+    const target = event.target;
+    if (!structureBox.contains(target) && target !== toggleBtn) {
+        structureBox.classList.remove('visible');
+    }
+});
+
+structureBox.addEventListener('click', function(event) {
+    event.stopPropagation();
+});
+
+    const data = {
+        name: "Country",
+        children: [
+            {
+                name: "Medicinal Products",
+                children: [
+                    { name: "Generic Name" },
+                    { name: "Brand Name" },
+                    {
+                        name: "Patient Details",
+                        children: [
+                            { name: "Report Id" },
+                            { name: "Sex" },
+                            { name: "Weight" },
+                            { name: "Age" },
+                            { name: "Dosage" },
+                            { name: "Start Date" },
+                            { name: "End Date" },
+                            { name: "Treatment Duration" }
+                        ]
+                    },
+                    { name: "Indications" },
+                    { name: "Reactions" },
+                    { name: "Outcomes" }
+                ]
+            }
+        ]
+    };
+
+    const svg = d3.select("#data-structure-svg");
+
+    function setLabelWidth(node) {
+        const avgCharWidth = 7;
+        const padding = 15;
+
+        node.data.labelWidth = node.data.name.length * avgCharWidth + padding;
+
+        if (node.children) {
+            node.children.forEach(child => setLabelWidth(child));
+        }
+    }
+
+    function renderTree() {
+        svg.selectAll("*").remove();
+
+        const boundingBox = svg.node().getBoundingClientRect();
+        const width = boundingBox.width;
+        const height = boundingBox.height;
+
+        const root = d3.hierarchy(data);
+
+        setLabelWidth(root);
+
+        const treeLayout = d3.tree()
+            .size([height, width - 160])
+            .separation(function(a, b) {
+                return (a.parent === b.parent ? 1 : 1.5) / a.depth;
+            });
+
+        treeLayout(root);
+
+        const nodes = root.descendants();
+        const links = root.links();
+        const adjustedLinks = links.map(link => ({
+            source: { x: link.source.x, y: link.source.y + link.source.data.labelWidth },
+            target: { x: link.target.x, y: link.target.y }
+        }));
+
+        const g = svg.append("g")
+            .attr("transform", "translate(5,2)");
+        const linkGenerator = d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x);
+
+        g.selectAll(".link")
+            .data(adjustedLinks)
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", linkGenerator)
+            .attr("fill", "none")
+            .attr("stroke", "#555")
+            .attr("stroke-width", 1.5);
+
+        const nodeRadius = 4;
+        const fontSize = 10;
+
+        g.selectAll(".node")
+            .data(nodes)
+            .enter()
+            .append("circle")
+            .attr("class", "node")
+            .attr("cx", d => d.y)
+            .attr("cy", d => d.x)
+            .attr("r", nodeRadius)
+            .attr("fill", "#555")
+            .on("mouseover", function(event, d) {
+                tooltip.transition().duration(200).style("opacity", 0.9);
+                tooltip.html(d.data.name)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                d3.select(this).attr("fill", "#ff0");
+            })
+            .on("mouseout", function() {
+                tooltip.transition().duration(500).style("opacity", 0);
+                d3.select(this).attr("fill", "#555");
+            });
+
+        const labels = g.selectAll(".label")
+            .data(nodes)
+            .enter()
+            .append("g")
+            .attr("class", "label-group")
+            .attr("transform", d => `translate(${d.y}, ${d.x})`);
+
+        labels.each(function(d) {
+            const text = d.data.name;
+
+            const labelBox = d3.select(this).append("rect")
+                .attr("class", "label-box")
+                .attr("x", 0)
+                .attr("y", -7)
+                .attr("width", d.data.labelWidth)
+                .attr("height", 14)
+                .attr("rx", 4)
+                .attr("ry", 4)
+                .attr("fill", "white")
+                .attr("stroke", "#ccc");
+
+            d3.select(this).append("circle")
+                .attr("class", "node")
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("r", nodeRadius)
+                .attr("fill", "#555");
+
+            d3.select(this).append("text")
+                .attr("class", "label-text")
+                .attr("x", 5)
+                .attr("y", 3.5)
+                .attr("font-size", fontSize)
+                .attr("fill", "#333")
+                .text(text);
+        });
+
+        g.selectAll(".label-group").selectAll(".label-box")
+            .lower();
+    }
+    renderTree();
+    window.addEventListener("resize", function() {
+        renderTree();
+    });
+});
