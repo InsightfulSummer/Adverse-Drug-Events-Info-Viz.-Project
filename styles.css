@@ -31,6 +31,7 @@ body {
 h1 {
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     top: 1px;
     margin-top: 0%;
     font-family: 'Georgia', 'Times New Roman', Times, serif;
@@ -62,10 +63,39 @@ h4 {
     font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 35px;
 >>>>>>> 17ee3f7 (info icons added and errors removed)
+=======
+    top: 1px;
+    margin-top: 0%;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-size: 35px;
+    color: #000000;
+}
+
+h2 {
+    top: 0px;
+    margin-top: 0%;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-size: 20px;
+    color: #c248ff;
+    font-weight: bold;
+}
+h3 {
+    top: 0px;
+    margin-top: 0%;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-size: 15px;
+}
+h4 {
+    top: 0px;
+    margin-top: 0%;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-size: 14px;
+>>>>>>> 103bcce (errors rectified)
 }
 
 .info-box {
     position: absolute;
+<<<<<<< HEAD
 <<<<<<< HEAD
     top: 10px;
     left: 10px;
@@ -80,17 +110,24 @@ h4 {
     max-width: 450px;
 =======
     top: 5px;
+=======
+    top: 10px;
+>>>>>>> 103bcce (errors rectified)
     left: 10px;
     background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #ccc;
+    border: 1px solid #e3e2e2;
     padding: 15px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 12px 12px 12px rgba(17, 255, 0, 0.1);
     font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 14px;
+    font-size: 18px;
     color: #333;
+<<<<<<< HEAD
     max-width: 500px;
 >>>>>>> 17ee3f7 (info icons added and errors removed)
+=======
+    max-width: 450px;
+>>>>>>> 103bcce (errors rectified)
     line-height: 1.5;
     z-index: 1000;
 }
@@ -258,6 +295,7 @@ h4 {
     position: absolute;
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     top: 380px;
     left: 45px;
 =======
@@ -272,6 +310,10 @@ h4 {
 =======
     left: 20px;
 >>>>>>> 81300e4 (timeline and sankey updated)
+=======
+    top: 300px;
+    left: 17px;
+>>>>>>> 103bcce (errors rectified)
     display: flex;
     align-items: center;
 }
@@ -1091,7 +1133,7 @@ h4 {
 #filter-container {
     position: absolute;
     left: 0px;
-    top: 350px;
+    top: 500px;
     width: 120px;
     height: 450px;
     background: #ffffff00;
