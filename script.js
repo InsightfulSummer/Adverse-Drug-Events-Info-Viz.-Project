@@ -1,6 +1,6 @@
 const _ = window._;
 let originalData = [];
-const margin = { top: 20, right: 10, bottom: 10, left: 10 },
+const margin = { top: 10, right: 10, bottom: 10, left: 10 },
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
     outerHeight = document.getElementById("treemap").clientHeight - margin.top - margin.bottom,
     countryMargin = 0,
@@ -663,7 +663,7 @@ d3.csv("data.csv", function (d, i) {
                     dropdownContent += `${productMatches} Medicinal Product${productMatches !== 1 ? 's' : ''}<br/>`;
                 }
                 if (countryMatches > 0) {
-                    dropdownContent += `${countryMatches} Country${countryMatches !== 1 ? 's' : ''}<br/>`;
+                    dropdownContent += `${countryMatches} ${countryMatches !== 1 ? 'Countries' : 'Country'}<br/>`;
                 }
                 if (reactionMatches > 0) {
                     dropdownContent += `${reactionMatches} Reaction${reactionMatches !== 1 ? 's' : ''}<br/>`;
@@ -973,20 +973,22 @@ function drawTreemap(data) {
         .sum(d => d.value)
         .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
-    const treemap = d3.treemap()
-        .size([outerWidth, outerHeight])
-        .paddingOuter(countryPadding)
-        .paddingInner(productMargin)
-        .round(true);
+        const treemap = d3.treemap()
+    .size([outerWidth + root.children.length, outerHeight + root.children.length])
+    .paddingOuter(countryPadding)
+    .paddingInner(productMargin)
+    .round(true);
+
+    
 
     treemap(root);
 
     const countries = zoomGroup.selectAll(".country")
-        .data(root.children)
-        .enter()
-        .append("g")
-        .attr("class", "country")
-        .attr("transform", d => `translate(${d.x0 + countryMargin},${d.y0 + countryMargin})`);
+    .data(root.children)
+    .enter()
+    .append("g")
+    .attr("class", "country")
+    .attr("transform", d => `translate(${d.x0 + countryMargin},${d.y0 + countryMargin})`);
 
     const topSpacing = -10;
 
@@ -1058,7 +1060,7 @@ function drawTreemap(data) {
                         tooltip.transition()
                             .duration(200)
                             .style("opacity", 1);
-                        tooltip.html(`Medicinal Product: ${d.data.key}`)
+                        tooltip.html(`Med Prd: ${d.data.key}`)
                             .style("left", `${event.pageX + 5}px`)
                             .style("top", `${event.pageY - 28}px`);
                     })
