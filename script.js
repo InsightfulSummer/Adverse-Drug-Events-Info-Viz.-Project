@@ -962,6 +962,14 @@ function initializeSlider(maxReports) {
     reportSlider.value = roundedMaxReports;
     reportSlider.step = 100;
     document.getElementById("report-count").textContent = `${roundedMaxReports} reports`;
+
+    // function if I upload the larger data file -
+    // const maxReportss = 5000; // Set to a reasonable limit
+    // reportSlider.max = maxReportss;
+    // reportSlider.value = maxReportss;
+    // reportSlider.step = 100;
+    // document.getElementById("report-count").textContent = `${maxReportss} reports`;
+
 }
 
 function drawTreemap(data) {
