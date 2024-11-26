@@ -7,6 +7,8 @@ const margin = { top: 10, right: 10, bottom: 10, left: 10 },
     productMargin = 4,
     countryPadding = 4;
 
+let selectedOutcome = null;
+
 let groupedData = [];
 let totalReports = 0;
 let minDate, maxDate;
@@ -72,6 +74,7 @@ const outcomeColors = {
     "Life-Threatening": "#ff8534",
     "Disabling": "#ffb27f",
     "Hospitalization": "#ffed92",
+    "Congenital Anomali": "#ffc0cb",
     "Not Serious": "#b3ff55",
     "Other": "#9ffff5"
 };
@@ -447,7 +450,7 @@ function parseDateString(dateString) {
     return date;
 }
 
-d3.csv("data2.csv", function (d, i) {
+d3.csv("data.csv", function (d, i) {
     d.StartDate = parseDateString(d.StartDate);
     d.EndDate = parseDateString(d.EndDate);
     d.id = d.SafetyreportID;
@@ -736,6 +739,12 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
             return false;
         }
 
+        if (selectedOutcome) {
+            if (report.Outcome !== selectedOutcome) {
+                return false;
+            }
+        }
+
         return true;
     });
     const groupedData = groupDataByCountryAndProduct(filteredReports);
@@ -761,60 +770,53 @@ function createColorScale(weekCounts) {
     
     const colorScale = d3.scaleLinear()
         .domain([0, maxCount / 2, maxCount])
-        .range(["yellow", "orange", "red"])
+        .range(["#e0f7fa", "#26c6da", "#01579b"])
         .interpolate(d3.interpolateHcl);
 
     return colorScale;
 }
 
 function drawDensityGradient(weekCounts, colorScale, svg, width, height) {
-    const xScale = d3.scaleTime()
-        .domain([minDate, maxDate])
-        .range([0, width]);
+    svg.select("defs").remove();
+    svg.selectAll("*").remove();
 
-    const binWidth = width / weekCounts.length;
+    const defs = svg.append("defs");
+    const gradient = defs.append("linearGradient")
+        .attr("id", "density-gradient")
+        .attr("x1", "0%")
+        .attr("x2", "100%")
+        .attr("y1", "0%")
+        .attr("y2", "0%");
 
-    svg.selectAll(".density-rect")
-        .data(weekCounts)
-        .join(
-            enter => enter.append("rect")
-                .attr("class", "density-rect")
-                .attr("x", d => xScale(d.weekStart))
-                .attr("y", 0)
-                .attr("width", binWidth)
-                .attr("height", height)
-                .attr("fill", d => colorScale(d.count)),
-            update => update
-                .attr("x", d => xScale(d.weekStart))
-                .attr("width", binWidth)
-                .attr("fill", d => colorScale(d.count)),
-            exit => exit.remove()
-        );
+    const totalDuration = maxDate - minDate;
+
+    weekCounts.forEach((d) => {
+        const offset = ((d.weekStart - minDate) / totalDuration) * 100;
+        gradient.append("stop")
+            .attr("offset", `${offset}%`)
+            .attr("stop-color", colorScale(d.count));
+    });
+
+    svg.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("fill", "url(#density-gradient)");
 }
 
 function drawDensityGradientResponsive() {
     timelineWidthGlobal = timelineBar.node().getBoundingClientRect().width;
-    const densityHeight = 40;
+    const densityHeight = 18;
 
-    const xScale = d3.scaleTime()
-        .domain([minDate, maxDate])
-        .range([0, timelineWidthGlobal]);
+    densitySvg.attr("width", timelineWidthGlobal)
+              .attr("height", densityHeight);
 
-    const binWidth = timelineWidthGlobal / weeklyReportCounts.length;
-
-    const rects = densitySvg.selectAll(".density-rect")
-        .data(weeklyReportCounts);
-
-    rects.enter()
-        .append("rect")
-        .attr("class", "density-rect")
-        .merge(rects)
-        .attr("x", d => xScale(d.weekStart))
-        .attr("width", binWidth)
-        .attr("height", densityHeight)
-        .attr("fill", d => densityColorScale(d.count));
-
-    rects.exit().remove();
+    drawDensityGradient(
+        weeklyReportCounts,
+        densityColorScale,
+        densitySvg,
+        timelineWidthGlobal,
+        densityHeight
+    );
 }
 
 function formatDate(date) {
@@ -854,8 +856,8 @@ function initializeDateRangeSlider() {
 
     timelineWidthGlobal = timelineBar.node().getBoundingClientRect().width;
 
-    leftHandle.style.left = '0px';
-    rightHandle.style.left = `${timelineWidthGlobal - 16}px`;
+    leftHandle.style.left = '4px';
+    rightHandle.style.left = `${timelineWidthGlobal - 6}px`;
 
     updateSelectedRange();
 
@@ -914,25 +916,28 @@ function initializeDateRangeSlider() {
     function updateSelectedRange() {
         const leftHandleLeft = parseInt(leftHandle.style.left);
         const rightHandleLeft = parseInt(rightHandle.style.left);
-
+    
         selectedStartDate = calculateDateFromX(leftHandleLeft + 8);
         selectedEndDate = calculateDateFromX(rightHandleLeft + 8);
-
+    
         selectedStartDate.setHours(0, 0, 0, 0);
         selectedEndDate.setHours(0, 0, 0, 0);
-
+    
         const rangeLeft = leftHandleLeft + 8;
         const rangeWidth = (rightHandleLeft + 8) - rangeLeft;
-
+    
         selectedRange.style.left = `${rangeLeft}px`;
         selectedRange.style.width = `${rangeWidth}px`;
-
+    
         leftDateDisplay.textContent = formatDate(selectedStartDate);
         rightDateDisplay.textContent = formatDate(selectedEndDate);
-
-        leftDateDisplay.style.left = `${leftHandleLeft + 8}px`;
-        rightDateDisplay.style.left = `${rightHandleLeft + 8}px`;
+    
+        leftDateDisplay.style.left = `${leftHandleLeft + 40}px`;
+        leftDateDisplay.style.top = `${0}px`;
+        rightDateDisplay.style.left = `${rightHandleLeft - 40}px`;
+        rightDateDisplay.style.top = `${0}px`;
     }
+    
 
     function calculateDateFromX(x) {
         const percentage = x / timelineWidthGlobal;
@@ -981,32 +986,32 @@ function drawTreemap(data) {
         .sum(d => d.value)
         .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
-        const treemap = d3.treemap()
-    .size([outerWidth + root.children.length, outerHeight + root.children.length])
-    .paddingOuter(countryPadding)
-    .paddingInner(productMargin)
-    .round(true);
+    const countryPadding = 5;
+    const productMargin = 4;
+    const topPadding = 18;
 
-    
+    const treemap = d3.treemap()
+        .size([outerWidth, outerHeight])
+        .paddingOuter(countryPadding)
+        .paddingInner(productMargin)
+        .paddingTop(topPadding)
+        .round(true);
 
     treemap(root);
 
     const countries = zoomGroup.selectAll(".country")
-    .data(root.children)
-    .enter()
-    .append("g")
-    .attr("class", "country")
-    .attr("transform", d => `translate(${d.x0 + countryMargin},${d.y0 + countryMargin})`);
-
-    const topSpacing = -10;
+        .data(root.children)
+        .enter()
+        .append("g")
+        .attr("class", "country")
+        .attr("transform", d => `translate(${d.x0},${d.y0})`);
 
     countries.append("rect")
         .attr("width", d => d.x1 - d.x0)
-        .attr("height", d => (d.y1 - d.y0) - topSpacing)
-        .attr("y", topSpacing)
+        .attr("height", d => d.y1 - d.y0)
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 2)
+        .attr("stroke-width", 0.5)
         .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
         .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); });
 
@@ -1014,12 +1019,16 @@ function drawTreemap(data) {
         .attr("x", function(d) {
             return (d.x1 - d.x0) / 2;
         })
-        .attr("y", 0)
-        .attr("dy", "0")
+        .attr("y", topPadding / 2)
+        .attr("dy", "0.35em")
         .text(function(d) {
             return d.data.key;
         })
-        .attr("font-size", "10px")
+        .attr("font-size", function(d) {
+            const width = d.x1 - d.x0;
+            const fontSize = Math.max(Math.min((width / d.data.key.length) * 1.5, 14), 8);
+            return fontSize + "px";
+        })
         .attr("text-anchor", "middle")
         .attr("pointer-events", "none");
 
@@ -1142,6 +1151,8 @@ function drawTreemap(data) {
 }
 
 function drawLegend() {
+    d3.select("#legend-container").selectAll("*").remove();
+
     const legendSvg = d3.select("#legend-container")
         .append("svg")
         .attr("width", outerWidth + margin.left + margin.right)
@@ -1150,7 +1161,7 @@ function drawLegend() {
 
     const legendGroup = legendSvg.append("g")
         .attr("class", "legend")
-        .attr("transform", `translate(${outerWidth/4}, 20)`);
+        .attr("transform", `translate(${outerWidth / 4}, 20)`);
 
     legendGroup.append("circle")
         .attr("cx", -200)
@@ -1182,26 +1193,40 @@ function drawLegend() {
         .attr("class", "outcome-legend")
         .attr("transform", `translate(90, 0)`);
 
-    let legendX = 0;
+    const legendItems = outcomeLegendGroup.selectAll(".legend-item")
+        .data(Object.keys(outcomeColors))
+        .enter()
+        .append("g")
+        .attr("class", "legend-item")
+        .attr("transform", (d, i) => `translate(${i * 120}, 0)`)
+        .style("cursor", "pointer")
+        .on("click", function (event, d) {
+            if (selectedOutcome === d) {
+                selectedOutcome = null;
+            } else {
+                selectedOutcome = d;
+            }
+            updateTreemap();
+            drawLegend();
+        });
 
-    Object.keys(outcomeColors).forEach(outcome => {
-        outcomeLegendGroup.append("rect")
-            .attr("x", legendX)
-            .attr("y", -10)
-            .attr("width", 20)
-            .attr("height", 20)
-            .attr("fill", outcomeColors[outcome]);
+    legendItems.append("rect")
+        .attr("x", 0)
+        .attr("y", -10)
+        .attr("width", 20)
+        .attr("height", 20)
+        .attr("fill", d => outcomeColors[d])
+        .attr("stroke", d => (selectedOutcome === d ? "#000" : "none"))
+        .attr("stroke-width", d => (selectedOutcome === d ? 2 : 0));
 
-        outcomeLegendGroup.append("text")
-            .attr("x", legendX + 25)
-            .attr("y", 5)
-            .text(outcome)
-            .style("font-size", "12px")
-            .attr("text-anchor", "start");
-
-        legendX += 120;
-    });
+    legendItems.append("text")
+        .attr("x", 25)
+        .attr("y", 5)
+        .text(d => d)
+        .style("font-size", "12px")
+        .attr("text-anchor", "start");
 }
+
 
 function stopAllBeating() {
     d3.selectAll(".beating").classed("beating", false);
