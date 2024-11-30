@@ -955,7 +955,7 @@ function groupDataByCountryAndProduct(data) {
             key,
             value: values.length,
             reports: values
-        })).sort((a, b) => d3.ascending(a.key, b.key))
+        })).sort((a, b) => d3.descending(a.value, b.value))
     })).sort((a, b) => d3.ascending(a.key, b.key));
 }
 
@@ -981,21 +981,29 @@ function drawTreemap(data) {
     zoomGroup.selectAll("*").remove();
 
     if (!data || data.length === 0) return;
+    // function for arranging the nodes alphabetically according to their names.
+    // const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
+    //     .sum(d => d.value)
+    //     .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
     const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
-        .sum(d => d.value)
-        .sort((a, b) => d3.ascending(a.data.key, b.data.key));
+    .sum(d => Math.max(d.value, 0.1))
+    .sort((a, b) => d3.ascending(a.data.key, b.value));
 
-    const countryPadding = 5;
+    const countryPadding = 2;
     const productMargin = 4;
-    const topPadding = 18;
+    const topPadding = 14;
 
     const treemap = d3.treemap()
-        .size([outerWidth, outerHeight])
-        .paddingOuter(countryPadding)
-        .paddingInner(productMargin)
-        .paddingTop(topPadding)
-        .round(true);
+    .size([outerWidth, outerHeight])
+    .paddingOuter(countryPadding)
+    .paddingInner(productMargin)
+    .paddingTop(function(d) {
+        const height = d.y1 - d.y0;
+        return Math.min(topPadding, height * 1);
+    })
+    .tile(d3.treemapBinary)
+    .round(true);
 
     treemap(root);
 
@@ -1011,26 +1019,42 @@ function drawTreemap(data) {
         .attr("height", d => d.y1 - d.y0)
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 0.5)
+        .attr("stroke-width", 0.1)
+        .append("title")
+        .text(function(d) { return d.data.key; })
         .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
         .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); });
 
-    countries.append("text")
+        countries.append("text")
         .attr("x", function(d) {
             return (d.x1 - d.x0) / 2;
         })
-        .attr("y", topPadding / 2)
+        .attr("y", function(d) {
+            const height = d.y1 - d.y0;
+            const paddingTop = Math.min(topPadding, height * 0.05);
+            return Math.max(paddingTop / 50, 6);
+        })
         .attr("dy", "0.35em")
         .text(function(d) {
-            return d.data.key;
+            const width = d.x1 - d.x0;
+            const approxCharWidth = 4;
+            const maxChars = Math.floor(width / approxCharWidth);
+            let text = d.data.key;
+            if (text.length > maxChars) {
+                text = text.slice(0, maxChars - 3) + '...';
+            }
+            return text;
         })
         .attr("font-size", function(d) {
             const width = d.x1 - d.x0;
-            const fontSize = Math.max(Math.min((width / d.data.key.length) * 1.5, 14), 8);
+            const height = d.y1 - d.y0;
+            let fontSize = Math.min((width / d.data.key.length) * 1.5, 8);
+            fontSize = Math.max(fontSize, 5);
             return fontSize + "px";
         })
         .attr("text-anchor", "middle")
-        .attr("pointer-events", "none");
+        .append("title")
+        .text(function(d) { return d.data.key; });    
 
     const products = countries.selectAll(".product")
         .data(d => d.children)
@@ -1296,8 +1320,8 @@ function showProductInfo(productData) {
 const internalMargin = { left: 10, right: 100 };
 
 function drawSankeyDiagram(nodesData, linksData) {
-    const sankeyWidth = 1450;
-    const sankeyHeight = Math.max(1000, nodesData.length * 50);
+    const sankeyWidth = 1300;
+    const sankeyHeight = Math.max(2000, nodesData.length * 50);
 
     const sankeySvg = d3.select("#sankey-container")
         .append("svg")
