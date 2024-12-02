@@ -1,6 +1,6 @@
 const _ = window._;
 let originalData = [];
-const margin = { top: 10, right: 10, bottom: 10, left: 10 },
+const margin = { top: 5, right: 10, bottom: 10, left: 10 },
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
     outerHeight = document.getElementById("treemap").clientHeight - margin.top - margin.bottom,
     countryMargin = 0,
@@ -1222,7 +1222,7 @@ function drawLegend() {
         .enter()
         .append("g")
         .attr("class", "legend-item")
-        .attr("transform", (d, i) => `translate(${i * 120}, 0)`)
+        .attr("transform", (d, i) => `translate(${i * 135}, 0)`)
         .style("cursor", "pointer")
         .on("click", function (event, d) {
             if (selectedOutcome === d) {
@@ -1306,11 +1306,13 @@ function showProductInfo(productData) {
             source: `ind_${name}`,
             target: `prod_${productData.key}`,
             value: indicationCounts[name],
+            originalValue: indicationCounts[name],
         })),
         ...allReactions.map(name => ({
             source: `prod_${productData.key}`,
             target: `reac_${name}`,
             value: reactionCounts[name],
+            originalValue: reactionCounts[name],
         })),
     ];
 
@@ -1346,27 +1348,87 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function drawSankeyGraph(graph) {
         sankeySvg.selectAll("*").remove();
-
+    
         const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
-
+    
         graph.links.forEach(link => {
             link.source = idToNode.get(link.source.id || link.source);
             link.target = idToNode.get(link.target.id || link.target);
         });
-
+    
         assignNodeLayers(graph.nodes);
         adjustLayers(graph.nodes, sankeyWidth);
-
+    
+        const nodeWidth = 20;
+        const minNodeHeight = 20;
+        const maxNodeHeight = 800;
+        const nodePadding = 15;
+    
+        const numberOfNodes = graph.nodes.length;
+    
+        let sankeyHeight = numberOfNodes * (minNodeHeight + nodePadding) + 80;
+    
+        const sankey = d3.sankey()
+            .nodeWidth(nodeWidth)
+            .nodePadding(nodePadding)
+            .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 1]])
+            .nodeAlign(d3.sankeyCenter)
+            .nodeSort(null);
+    
         sankey(graph);
-
+    
+        let nodeHeights = graph.nodes.map(d => d.y1 - d.y0);
+        let minActualNodeHeight = d3.min(nodeHeights);
+        let maxActualNodeHeight = d3.max(nodeHeights);
+    
+        let valueScalingFactor = 1;
+    
+        if (minActualNodeHeight < minNodeHeight) {
+            const minHeightScalingFactor = minNodeHeight / minActualNodeHeight;
+            valueScalingFactor = Math.max(valueScalingFactor, minHeightScalingFactor);
+        }
+    
+        if (maxActualNodeHeight > maxNodeHeight) {
+            const maxHeightScalingFactor = maxNodeHeight / maxActualNodeHeight;
+            valueScalingFactor = Math.min(valueScalingFactor, maxHeightScalingFactor);
+        }
+    
+        if (valueScalingFactor !== 1) {
+            graph.links.forEach(link => {
+                link.value *= valueScalingFactor;
+            });
+            graph.nodes.forEach(node => {
+                node.value = 0;
+            });
+            graph.links.forEach(link => {
+                link.source.value += link.value;
+                link.target.value += link.value;
+            });
+        
+            sankey(graph);
+            nodeHeights = graph.nodes.map(d => d.y1 - d.y0);
+            minActualNodeHeight = d3.min(nodeHeights);
+            maxActualNodeHeight = d3.max(nodeHeights);
+        }
+    
+        if (minActualNodeHeight < minNodeHeight) {
+            const heightScalingFactor = minNodeHeight / minActualNodeHeight;
+            sankeyHeight *= heightScalingFactor;
+            sankey.extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 1]]);
+            sankey(graph);
+        }
+        sankeySvg
+            .attr("height", sankeyHeight);
+    
         const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
         const translateX = (sankeyWidth - diagramWidth) / 2;
-
+    
         const diagramGroup = sankeySvg.append("g")
             .attr("transform", `translate(${translateX},0)`);
-
+    
         drawSankeyElements(diagramGroup, graph);
     }
+    
     
     function assignNodeLayers(nodes) {
         nodes.forEach(node => {
@@ -1488,121 +1550,129 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function drawSankeyElements(diagramGroup, graph) {
         const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-        const maxReportCount = d3.max(graph.links, d => d.value) || 1;
+    const maxReportCount = d3.max(graph.links, d => d.value) || 1;
     
-        const indicationColorScale = d3.scaleLinear()
-            .domain([0, d3.max(Object.values(window.totalIndicationCounts)) / 2, d3.max(Object.values(window.totalIndicationCounts))])
-            .range(["#ccffcc", "#00cc00", "#006400"])
-            .interpolate(d3.interpolateHcl);
+
+    const indicationColorScale = d3.scaleLinear()
+        .domain([0, d3.max(Object.values(window.totalIndicationCounts)) / 2, d3.max(Object.values(window.totalIndicationCounts))])
+        .range(["#ccffcc", "#00cc00", "#006400"])
+        .interpolate(d3.interpolateHcl);
+
+    const reactionColorScale = d3.scaleLinear()
+        .domain([0, d3.max(Object.values(window.totalReactionCounts)) / 2, d3.max(Object.values(window.totalReactionCounts))])
+        .range(["#ffcccc", "#ff0000", "#8B0000"])
+        .interpolate(d3.interpolateHcl);
+
+    const link = diagramGroup.append("g")
+        .attr("class", "links")
+        .selectAll("path")
+        .data(graph.links)
+        .enter()
+        .append("path")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("fill", "none")
+        .attr("stroke", d => {
+            if ((d.source.type === "report_detail" && (d.target.type === "indication" || d.target.type === "reaction")) ||
+                ((d.source.type === "indication" || d.source.type === "reaction") && d.target.type === "report_detail")) {
+                const report = d.source.type === "report_detail" ? d.source.report : d.target.report;
+                const outcome = report.Outcome;
+                return outcomeColors[outcome] || "#87ceeb";
+            } else if (d.source.type === "indication" || d.target.type === "indication") {
+                const indicationName = d.source.type === "indication" ? d.source.name : d.target.name;
+                const count = window.totalIndicationCounts[indicationName] || 0;
+                return indicationColorScale(count);
+            } else if (d.source.type === "reaction" || d.target.type === "reaction") {
+                const reactionName = d.source.type === "reaction" ? d.source.name : d.target.name;
+                const count = window.totalReactionCounts[reactionName] || 0;
+                return reactionColorScale(count);
+            } else {
+                return "#888";
+            }
+        })
         
-        const reactionColorScale = d3.scaleLinear()
-            .domain([0, d3.max(Object.values(window.totalReactionCounts)) / 2, d3.max(Object.values(window.totalReactionCounts))])
-            .range(["#ffcccc", "#ff0000", "#8B0000"])
-            .interpolate(d3.interpolateHcl);
-        
-        const link = diagramGroup.append("g")
-            .attr("class", "links")
-            .selectAll("path")
-            .data(graph.links)
-            .enter()
-            .append("path")
-            .attr("d", d3.sankeyLinkHorizontal())
-            .attr("fill", "none")
-            .attr("stroke", d => {
-                if (d.source.type === "indication" || d.target.type === "indication") {
-                    const indicationName = d.source.type === "indication" ? d.source.name : d.target.name;
-                    const count = window.totalIndicationCounts[indicationName] || 0;
-                    return indicationColorScale(count);
-                } else if (d.source.type === "reaction" || d.target.type === "reaction") {
-                    const reactionName = d.source.type === "reaction" ? d.source.name : d.target.name;
-                    const count = window.totalReactionCounts[reactionName] || 0;
-                    return reactionColorScale(count);
-                } else {
-                    return "#888";
-                }
-            })
-            .attr("stroke-width", d => d.width)
-            .attr("opacity", 0.8)
-            .on("mouseover", function (event, d) {
-                tooltip.transition().duration(200).style("opacity", 1);
-                tooltip.html(`${d.value} report${d.value !== 1 ? 's' : ''}`)
-                    .style("left", `${event.pageX + 5}px`)
-                    .style("top", `${event.pageY - 28}px`);
-            })
-            .on("mouseout", function () {
-                tooltip.transition().duration(500).style("opacity", 0);
-            });
-    
-        const defs = diagramGroup.append("defs");
-    
-        defs.selectAll("path.link-label-path")
-            .data(graph.links)
-            .enter()
-            .append("path")
-            .attr("class", "link-label-path")
-            .attr("id", d => `link-label-path-${d.source.id}-${d.target.id}`)
-            .attr("d", d3.sankeyLinkHorizontal())
-            .attr("fill", "none")
-            .attr("stroke", "none");
-    
-        const linkLabels = diagramGroup.append("g")
-            .attr("class", "link-labels")
-            .selectAll("text.link-label")
-            .data(graph.links)
-            .enter()
-            .append("text")
-            .attr("class", "link-label")
-            .attr("dy", "0.35em")
-            .attr("fill", "#000")
-            .attr("pointer-events", "none")
-            .style("font-size", d => {
-                const minFont = 8;
-                const maxFont = 12;
-                const scaledSize = Math.min(d.width / 2, maxFont);
-                return `${Math.max(scaledSize, minFont)}px`;
-            })
-            .append("textPath")
-            .attr("href", d => `#link-label-path-${d.source.id}-${d.target.id}`)
-            .attr("startOffset", d => {
-                if (d.source.type === "indication" && d.target.type === "product") {
-                    return "5%";
-                } else if (d.source.type === "product" && d.target.type === "reaction") {
-                    return "95%";
-                } else if (d.source.type === "patient_detail") {
-                    return "5%";
-                } else if (d.target.type === "patient_detail") {
-                    return "95%";
-                }
-                return "50%";
-            })
-            .attr("text-anchor", d => {
-                if (d.source.type === "indication" && d.target.type === "product") {
-                    return "start";
-                } else if (d.source.type === "product" && d.target.type === "reaction") {
-                    return "end";
-                } else if (d.source.type === "patient_detail") {
-                    return "start";
-                } else if (d.target.type === "patient_detail") {
-                    return "end";
-                }
-                return "middle";
-            })
-            .text(d => {
-                if (d.source.type === "indication" && d.target.type === "product") {
-                    return d.source.name;
-                } else if (d.source.type === "product" && d.target.type === "reaction") {
-                    return d.target.name;
-                } else if (d.source.type === "patient_detail") {
-                    return getPatientDetails(d.source.report);
-                } else if (d.target.type === "patient_detail") {
-                    return getPatientDetails(d.target.report);
-                }
-                return "";
-            });
-    
-        linkLabels.selectAll("textPath")
-            .attr("dominant-baseline", "middle")
-            .style("pointer-events", "none");
+        .attr("stroke-width", d => d.width)
+        .attr("opacity", 0.8)
+        .on("mouseover", function (event, d) {
+            tooltip.transition().duration(200).style("opacity", 1);
+            const reportCount = d.originalValue;
+            tooltip.html(`${reportCount} report${reportCount !== 1 ? 's' : ''}`)
+                .style("left", `${event.pageX + 5}px`)
+                .style("top", `${event.pageY - 28}px`);
+        })
+        .on("mouseout", function () {
+            tooltip.transition().duration(500).style("opacity", 0);
+        });
+
+    const defs = diagramGroup.append("defs");
+
+    defs.selectAll("path.link-label-path")
+        .data(graph.links)
+        .enter()
+        .append("path")
+        .attr("class", "link-label-path")
+        .attr("id", d => `link-label-path-${d.source.id}-${d.target.id}`)
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("fill", "none")
+        .attr("stroke", "none");
+
+    const linkLabels = diagramGroup.append("g")
+        .attr("class", "link-labels")
+        .selectAll("text.link-label")
+        .data(graph.links)
+        .enter()
+        .append("text")
+        .attr("class", "link-label")
+        .attr("dy", "0.35em")
+        .attr("fill", "#000")
+        .attr("pointer-events", "none")
+        .style("font-size", d => {
+            const minFont = 8;
+            const maxFont = 12;
+            const scaledSize = Math.min(d.width / 2, maxFont);
+            return `${Math.max(scaledSize, minFont)}px`;
+        })
+        .append("textPath")
+        .attr("href", d => `#link-label-path-${d.source.id}-${d.target.id}`)
+        .attr("startOffset", d => {
+            if (d.source.type === "report_detail" && (d.target.type === "indication" || d.target.type === "reaction")) {
+                return "5%";
+            } else if ((d.source.type === "indication" || d.source.type === "reaction") && d.target.type === "report_detail") {
+                return "95%";
+            } else if (d.source.type === "indication" && d.target.type === "product") {
+                return "5%";
+            } else if (d.source.type === "product" && d.target.type === "reaction") {
+                return "95%";
+            }
+            return "50%";
+        })
+        .attr("text-anchor", d => {
+            if (d.source.type === "report_detail" && (d.target.type === "indication" || d.target.type === "reaction")) {
+                return "start";
+            } else if ((d.source.type === "indication" || d.source.type === "reaction") && d.target.type === "report_detail") {
+                return "end";
+            } else if (d.source.type === "indication" && d.target.type === "product") {
+                return "start";
+            } else if (d.source.type === "product" && d.target.type === "reaction") {
+                return "end";
+            }
+            return "middle";
+        })
+        .text(d => {
+            if ((d.source.type === "report_detail" && (d.target.type === "indication" || d.target.type === "reaction")) ||
+                ((d.source.type === "indication" || d.source.type === "reaction") && d.target.type === "report_detail")) {
+                const report = d.source.type === "report_detail" ? d.source.report : d.target.report;
+                return getPatientDetails(report);
+            } else if (d.source.type === "indication" && d.target.type === "product") {
+                return d.source.name;
+            } else if (d.source.type === "product" && d.target.type === "reaction") {
+                return d.target.name;
+            }
+            return "";
+        });
+
+    linkLabels.selectAll("textPath")
+        .attr("dominant-baseline", "middle")
+        .style("pointer-events", "none");
     
         const nodeGroup = diagramGroup.append("g")
             .selectAll("g")
@@ -1657,23 +1727,32 @@ function drawSankeyDiagram(nodesData, linksData) {
             })
             .on("mouseover", function (event, d) {
                 if (d.type === 'report_detail') {
-                    const report = d.report;
-                    const tooltipContent = `${report.SafetyreportID} | ${report.PatientAge} years | ${capitalize(report.PatientSex)} | ${report.PatientWeight} kg`;
-                    tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(tooltipContent)
-                        .style("left", `${event.pageX + 5}px`)
-                        .style("top", `${event.pageY - 28}px`);
-                } else {
-                    tooltip.transition().duration(200).style("opacity", 1);
-                    tooltip.html(`${d.name}`)
-                        .style("left", `${event.pageX + 5}px`)
-                        .style("top", `${event.pageY - 28}px`);
                 }
             })
-            .on("mouseout", function () {
-                tooltip.transition().duration(500).style("opacity", 0);
+            .on("mouseout", function(event, d) {
+                if (d.type === 'report_detail') {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                }
             });
-    }    
+    }
+
+    function getPatientDetails(report) {
+        const details = [];
+        if (report.SafetyreportID) {
+            details.push(`Report ID: ${report.SafetyreportID}`);
+        }
+        if (report.PatientSex && report.PatientSex !== 'unknown') {
+            details.push(`${capitalize(report.PatientSex)}`);
+        }
+        if (report.PatientAge && report.PatientAge !== 'unknown') {
+            details.push(`${report.PatientAge} years`);
+        }
+        if (report.PatientWeight && report.PatientWeight !== 'unknown') {
+            details.push(`${report.PatientWeight} kg`);
+        }
+        return details.join(' | ');
+    }
+
 
     function findProductsByReactionOrIndication(type, name) {
         const products = [];
@@ -1848,177 +1927,214 @@ function capitalize(str) {
 
 document.addEventListener("DOMContentLoaded", function() {
 
-const toggleBtn = document.getElementById('toggle-structure-btn');
-const structureBox = document.getElementById('structure-box');
+    const toggleViewBtn = document.getElementById('toggle-view-btn');
+    const contentContainer = document.getElementById('content-container');
+    let isToggled = false;
 
-function toggleStructureBox(event) {
-    event.stopPropagation();
-    structureBox.classList.toggle('visible');
-}
-
-toggleBtn.addEventListener('click', toggleStructureBox);
-
-document.addEventListener('click', function(event) {
-    const target = event.target;
-    if (!structureBox.contains(target) && target !== toggleBtn) {
-        structureBox.classList.remove('visible');
-    }
-});
-
-structureBox.addEventListener('click', function(event) {
-    event.stopPropagation();
-});
-
-    const data = {
-        name: "Country",
-        children: [
-            {
-                name: "Medicinal Products",
-                children: [
-                    { name: "Generic Name" },
-                    { name: "Brand Name" },
-                    {
-                        name: "Patient Details",
-                        children: [
-                            { name: "Report Id" },
-                            { name: "Sex" },
-                            { name: "Weight" },
-                            { name: "Age" },
-                            { name: "Dosage" },
-                            { name: "Start Date" },
-                            { name: "End Date" },
-                            { name: "Treatment Duration" }
-                        ]
-                    },
-                    { name: "Indications" },
-                    { name: "Reactions" },
-                    { name: "Outcomes" }
-                ]
-            }
-        ]
-    };
-
-    const svg = d3.select("#data-structure-svg");
-
-    function setLabelWidth(node) {
-        const avgCharWidth = 7;
-        const padding = 15;
-
-        node.data.labelWidth = node.data.name.length * avgCharWidth + padding;
-
-        if (node.children) {
-            node.children.forEach(child => setLabelWidth(child));
+    toggleViewBtn.addEventListener('click', function() {
+        isToggled = !isToggled;
+        if (isToggled) {
+            contentContainer.classList.add('toggled-view');
+            resizeSVGsForToggledView();
+        } else {
+            contentContainer.classList.remove('toggled-view');
+            resetSVGsToDefault();
         }
-    }
-
-    function renderTree() {
-        svg.selectAll("*").remove();
-
-        const boundingBox = svg.node().getBoundingClientRect();
-        const width = boundingBox.width;
-        const height = boundingBox.height;
-
-        const root = d3.hierarchy(data);
-
-        setLabelWidth(root);
-
-        const treeLayout = d3.tree()
-            .size([height, width - 160])
-            .separation(function(a, b) {
-                return (a.parent === b.parent ? 1 : 1.5) / a.depth;
-            });
-
-        treeLayout(root);
-
-        const nodes = root.descendants();
-        const links = root.links();
-        const adjustedLinks = links.map(link => ({
-            source: { x: link.source.x, y: link.source.y + link.source.data.labelWidth },
-            target: { x: link.target.x, y: link.target.y }
-        }));
-
-        const g = svg.append("g")
-            .attr("transform", "translate(5,2)");
-        const linkGenerator = d3.linkHorizontal()
-            .x(d => d.y)
-            .y(d => d.x);
-
-        g.selectAll(".link")
-            .data(adjustedLinks)
-            .enter()
-            .append("path")
-            .attr("class", "link")
-            .attr("d", linkGenerator)
-            .attr("fill", "none")
-            .attr("stroke", "#555")
-            .attr("stroke-width", 1.5);
-
-        const nodeRadius = 4;
-        const fontSize = 10;
-
-        g.selectAll(".node")
-            .data(nodes)
-            .enter()
-            .append("circle")
-            .attr("class", "node")
-            .attr("cx", d => d.y)
-            .attr("cy", d => d.x)
-            .attr("r", nodeRadius)
-            .attr("fill", "#555")
-            .on("mouseover", function(event, d) {
-                tooltip.transition().duration(200).style("opacity", 0.9);
-                tooltip.html(d.data.name)
-                    .style("left", (event.pageX + 10) + "px")
-                    .style("top", (event.pageY - 28) + "px");
-                d3.select(this).attr("fill", "#ff0");
-            })
-            .on("mouseout", function() {
-                tooltip.transition().duration(500).style("opacity", 0);
-                d3.select(this).attr("fill", "#555");
-            });
-
-        const labels = g.selectAll(".label")
-            .data(nodes)
-            .enter()
-            .append("g")
-            .attr("class", "label-group")
-            .attr("transform", d => `translate(${d.y}, ${d.x})`);
-
-        labels.each(function(d) {
-            const text = d.data.name;
-
-            const labelBox = d3.select(this).append("rect")
-                .attr("class", "label-box")
-                .attr("x", 0)
-                .attr("y", -7)
-                .attr("width", d.data.labelWidth)
-                .attr("height", 14)
-                .attr("rx", 4)
-                .attr("ry", 4)
-                .attr("fill", "white")
-                .attr("stroke", "#ccc");
-
-            d3.select(this).append("circle")
-                .attr("class", "node")
-                .attr("cx", 0)
-                .attr("cy", 0)
-                .attr("r", nodeRadius)
-                .attr("fill", "#555");
-
-            d3.select(this).append("text")
-                .attr("class", "label-text")
-                .attr("x", 5)
-                .attr("y", 3.5)
-                .attr("font-size", fontSize)
-                .attr("fill", "#333")
-                .text(text);
-        });
-
-        g.selectAll(".label-group").selectAll(".label-box")
-            .lower();
-    }
-    renderTree();
-    window.addEventListener("resize", function() {
-        renderTree();
     });
+
+    function resizeSVGsForToggledView() {
+        d3.select("#treemap svg")
+            .attr("width", document.getElementById("treemap").clientWidth)
+            .attr("height", outerHeight);
+
+        d3.select("#sankey-container svg")
+            .attr("width", document.getElementById("sankey-container").clientWidth)
+            .attr("height", outerHeight)
+            .style("overflow", "scroll");
+    }
+
+    function resetSVGsToDefault() {
+        d3.select("#treemap svg")
+            .attr("width", outerWidth + margin.left + margin.right)
+            .attr("height", outerHeight + margin.top + margin.bottom);
+
+        d3.select("#sankey-container svg")
+            .attr("width", document.getElementById("sankey-container").clientWidth)
+            .attr("height", 800)
+            .style("overflow-y", "visible");
+    }
+
+    const toggleBtn = document.getElementById('toggle-structure-btn');
+    const structureBox = document.getElementById('structure-box');
+
+    function toggleStructureBox(event) {
+        event.stopPropagation();
+        structureBox.classList.toggle('visible');
+    }
+
+    toggleBtn.addEventListener('click', toggleStructureBox);
+
+    document.addEventListener('click', function(event) {
+        const target = event.target;
+        if (!structureBox.contains(target) && target !== toggleBtn) {
+            structureBox.classList.remove('visible');
+        }
+    });
+
+    structureBox.addEventListener('click', function(event) {
+        event.stopPropagation();
+    });
+
+        const data = {
+            name: "Country",
+            children: [
+                {
+                    name: "Medicinal Products",
+                    children: [
+                        { name: "Generic Name" },
+                        { name: "Brand Name" },
+                        {
+                            name: "Patient Details",
+                            children: [
+                                { name: "Report Id" },
+                                { name: "Sex" },
+                                { name: "Weight" },
+                                { name: "Age" },
+                                { name: "Dosage" },
+                                { name: "Start Date" },
+                                { name: "End Date" },
+                                { name: "Treatment Duration" }
+                            ]
+                        },
+                        { name: "Indications" },
+                        { name: "Reactions" },
+                        { name: "Outcomes" }
+                    ]
+                }
+            ]
+        };
+
+        const svg = d3.select("#data-structure-svg");
+
+        function setLabelWidth(node) {
+            const avgCharWidth = 7;
+            const padding = 15;
+
+            node.data.labelWidth = node.data.name.length * avgCharWidth + padding;
+
+            if (node.children) {
+                node.children.forEach(child => setLabelWidth(child));
+            }
+        }
+
+        function renderTree() {
+            svg.selectAll("*").remove();
+
+            const boundingBox = svg.node().getBoundingClientRect();
+            const width = boundingBox.width;
+            const height = boundingBox.height;
+
+            const root = d3.hierarchy(data);
+
+            setLabelWidth(root);
+
+            const treeLayout = d3.tree()
+                .size([height, width - 160])
+                .separation(function(a, b) {
+                    return (a.parent === b.parent ? 1 : 1.5) / a.depth;
+                });
+
+            treeLayout(root);
+
+            const nodes = root.descendants();
+            const links = root.links();
+            const adjustedLinks = links.map(link => ({
+                source: { x: link.source.x, y: link.source.y + link.source.data.labelWidth },
+                target: { x: link.target.x, y: link.target.y }
+            }));
+
+            const g = svg.append("g")
+                .attr("transform", "translate(5,2)");
+            const linkGenerator = d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x);
+
+            g.selectAll(".link")
+                .data(adjustedLinks)
+                .enter()
+                .append("path")
+                .attr("class", "link")
+                .attr("d", linkGenerator)
+                .attr("fill", "none")
+                .attr("stroke", "#555")
+                .attr("stroke-width", 1.5);
+
+            const nodeRadius = 4;
+            const fontSize = 10;
+
+            g.selectAll(".node")
+                .data(nodes)
+                .enter()
+                .append("circle")
+                .attr("class", "node")
+                .attr("cx", d => d.y)
+                .attr("cy", d => d.x)
+                .attr("r", nodeRadius)
+                .attr("fill", "#555")
+                .on("mouseover", function(event, d) {
+                    tooltip.transition().duration(200).style("opacity", 0.9);
+                    tooltip.html(d.data.name)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 28) + "px");
+                    d3.select(this).attr("fill", "#ff0");
+                })
+                .on("mouseout", function() {
+                    tooltip.transition().duration(500).style("opacity", 0);
+                    d3.select(this).attr("fill", "#555");
+                });
+
+            const labels = g.selectAll(".label")
+                .data(nodes)
+                .enter()
+                .append("g")
+                .attr("class", "label-group")
+                .attr("transform", d => `translate(${d.y}, ${d.x})`);
+
+            labels.each(function(d) {
+                const text = d.data.name;
+
+                const labelBox = d3.select(this).append("rect")
+                    .attr("class", "label-box")
+                    .attr("x", 0)
+                    .attr("y", -7)
+                    .attr("width", d.data.labelWidth)
+                    .attr("height", 14)
+                    .attr("rx", 4)
+                    .attr("ry", 4)
+                    .attr("fill", "white")
+                    .attr("stroke", "#ccc");
+
+                d3.select(this).append("circle")
+                    .attr("class", "node")
+                    .attr("cx", 0)
+                    .attr("cy", 0)
+                    .attr("r", nodeRadius)
+                    .attr("fill", "#555");
+
+                d3.select(this).append("text")
+                    .attr("class", "label-text")
+                    .attr("x", 5)
+                    .attr("y", 3.5)
+                    .attr("font-size", fontSize)
+                    .attr("fill", "#333")
+                    .text(text);
+            });
+
+            g.selectAll(".label-group").selectAll(".label-box")
+                .lower();
+        }
+        renderTree();
+        window.addEventListener("resize", function() {
+            renderTree();
+        });
 });

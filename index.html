@@ -29,6 +29,10 @@
             Understanding the structure of data
         </button>
 
+        <button id="toggle-view-btn" class="toggle-view-button">
+            Toggle View
+        </button>
+
         <div class="structure-box" id="structure-box">
             <div class="structure-header">Understanding the Structure of Data</div>
             <svg id="data-structure-svg"></svg>
@@ -43,16 +47,7 @@
             </div>
         </div>
 
-        <div id="search-container">
-            <input type="text" id="search-bar" placeholder="Search...">
-            <span class="info-icon" tabindex="0" aria-label="Search Information" data-tooltip="Search for Countries, Medicinal Products, Generic names, Brand names, Reactions or Indications!">i</span>
-            <div id="search-dropdown" class="dropdown-content" style="display: none;"></div>
-            <div id="search-results"></div>
-        </div>
-
         <div id="legend-container"></div>
-
-        <div id="treemap"></div>
 
         <div id="navigation-instructions">
             <p>Scroll to Zoom</p>
@@ -63,7 +58,21 @@
             <div id="timeline-bar"></div>
         </div>
 
-        <div id="sankey-container"></div>
+        <div id="search-container">
+            <input type="text" id="search-bar" placeholder="Search...">
+            <span class="info-icon" tabindex="0" aria-label="Search Information" data-tooltip="Search for Countries, Medicinal Products, Generic names, Brand names, Reactions or Indications!">i</span>
+            <div id="search-dropdown" class="dropdown-content" style="display: none;"></div>
+            <div id="search-results"></div>
+        </div>
+
+        <div class="clearfix">
+            <div id="treemap"></div>
+            <div id="country-filter-container">
+                <button id="toggle-country-filter-btn">Toggle Country Filter</button>
+                <div id="country-filter-message">Showing reports all over the world</div>
+            </div>
+            <div id="sankey-container"></div>
+        </div>
 
         <script src="script.js"></script>
     </div>
