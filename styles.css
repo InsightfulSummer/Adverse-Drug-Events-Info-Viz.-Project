@@ -135,12 +135,17 @@ h4 {
 .toggle-structure-button {
     position: absolute;
 <<<<<<< HEAD
+<<<<<<< HEAD
     top: 30px;
     right: 60px;
 =======
     top: 80px;
     right: 80px;
 >>>>>>> 17ee3f7 (info icons added and errors removed)
+=======
+    top: 30px;
+    right: 60px;
+>>>>>>> 72e1e88 (visual changes)
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px 20px;
@@ -236,14 +241,18 @@ h4 {
 
 #treemap {
     overflow: visible;
-    width: 80vw;
+    width: 85vw;
     height: 80vh;
+<<<<<<< HEAD
 <<<<<<< HEAD
     margin: 20px;
 >>>>>>> d85a6ad (Adding project files)
 =======
     margin-left: 70px;
 >>>>>>> b77150b (filters updated)
+=======
+    margin-left: 5px;
+>>>>>>> 72e1e88 (visual changes)
 }
 
 #info-panel {
@@ -296,6 +305,7 @@ h4 {
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     top: 380px;
     left: 45px;
 =======
@@ -314,6 +324,10 @@ h4 {
     top: 300px;
     left: 17px;
 >>>>>>> 103bcce (errors rectified)
+=======
+    top: 380px;
+    left: 110px;
+>>>>>>> 72e1e88 (visual changes)
     display: flex;
     align-items: center;
 }
@@ -408,10 +422,14 @@ h4 {
     border-radius: 4px;
     outline: none;
 <<<<<<< HEAD
+<<<<<<< HEAD
     }
 =======
 }
 >>>>>>> d85a6ad (Adding project files)
+=======
+    }
+>>>>>>> 72e1e88 (visual changes)
 
 #search-bar::placeholder {
     color: #999;
@@ -481,9 +499,13 @@ h4 {
     justify-content: center;
     align-items: center;
 <<<<<<< HEAD
+<<<<<<< HEAD
     z-index: 1000;
 =======
 >>>>>>> 445977d (filters & sankey Updated)
+=======
+    z-index: 1000;
+>>>>>>> 72e1e88 (visual changes)
 }
 
 .legend circle, .legend rect {
@@ -521,10 +543,16 @@ h4 {
 =======
 >>>>>>> 81300e4 (timeline and sankey updated)
 #navigation-instructions {
+<<<<<<< HEAD
     position: absolute;
     right: 5px;
     top: 500px;
 >>>>>>> d85a6ad (Adding project files)
+=======
+    position: relative;
+    right: 10px;
+    top: 75px;
+>>>>>>> 72e1e88 (visual changes)
     text-align: right;
     color: rgb(68, 68, 68);
 }
@@ -939,8 +967,8 @@ h4 {
 >>>>>>> c297b57 (new Indications/reactions)
 #timeline-container {
     width: 80vw;
-    margin-top: 20px;
-    margin-bottom: 40px;
+    margin-top: 0px;
+    margin-bottom: 60px;
     left: 35px;
     position: relative;
 }
@@ -1120,21 +1148,22 @@ h4 {
 #sankey-container {
     align-items: center;
     margin-left: 100px;
-    margin-top: 10px;
+    margin-top: 80px;
     margin-right: 50px;
     width: 90%;
     height: 80vh;
-    overflow: auto;
+    overflow: visible;
 }
 
 #filter-container {
     position: absolute;
-    left: 0px;
-    top: 500px;
-    width: 120px;
+    right: 100px;
+    top: 58px;
+    width: 180px;
     height: 450px;
-    background: #ffffff00;
+    background: #00000000;
     padding: 5px;
+    z-index: 0;
     border-radius: 10px;
     text-align: center;
 }
@@ -1202,4 +1231,81 @@ h4 {
 .link-label-background {
     fill: rgb(248, 0, 0);
 }
+<<<<<<< HEAD
 >>>>>>> 17ee3f7 (info icons added and errors removed)
+=======
+
+.toggle-view-button {
+    position: absolute;
+    top: 380px;
+    right: 200px;
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 10px 20px;
+    border-radius: 8px;
+    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    z-index: 1;
+    transition: all 0.3s ease;
+}
+
+.toggled-view #treemap {
+    float: left;
+    width: calc(50% - 15px);
+    margin-left: 10px;
+    margin-right: 20px;
+    margin-bottom: 10px;
+}
+
+.toggled-view #sankey-container {
+    float: right;
+    width: calc(50% - 15px);
+    margin-top: -82vh;
+    margin-right: 0px;
+    margin-bottom: 10px;
+    overflow: auto;
+}
+
+
+.toggled-view #filter-container {
+    position: absolute;
+    right: 100px;
+    top: 58px;
+}
+
+.toggled-view #navigation-instructions {
+    position: relative;
+    right: 10px;
+    top: 75px;
+}
+
+#country-filter-container {
+    text-align: center;
+    margin: 10px 0;
+}
+
+#toggle-country-filter-btn {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#country-filter-message {
+    margin-top: 5px;
+    font-size: 14px;
+}
+
+.toggled-view #country-filter-container {
+    float: right;
+    width: calc(50% - 15px);
+    margin-top: -82vh;
+    margin-right: 0px;
+    margin-bottom: 10px;
+    clear: both;
+}
+>>>>>>> 72e1e88 (visual changes)
