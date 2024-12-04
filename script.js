@@ -455,7 +455,7 @@ function parseDateString(dateString) {
     return date;
 }
 
-d3.csv("data2.csv", function (d, i) {
+d3.csv("data.csv", function (d, i) {
     d.StartDate = parseDateString(d.StartDate);
     d.EndDate = parseDateString(d.EndDate);
     d.id = d.SafetyreportID;
@@ -716,8 +716,9 @@ d3.csv("data2.csv", function (d, i) {
 });
 
 function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDate, selectedEndDate) {
-    const limitedReports = data.slice(0, reportLimit);
-    const filteredReports = limitedReports.filter(report => {
+    console.log(`Total reports before filtering: ${data.length}`);
+
+    const filteredReports = data.filter(report => {
         const reportEndDate = report.EndDate;
         const dateValid = (!reportEndDate || (reportEndDate >= selectedStartDate && reportEndDate <= selectedEndDate));
 
@@ -740,11 +741,10 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
         if (sexFilter.male) sexSelected.push('male');
         if (sexFilter.female) sexSelected.push('female');
 
-        if (sexSelected.length > 0) {
-            if (report.PatientSex === 'unknown') return false;
-            if (!sexSelected.includes(report.PatientSex)) return false;
+        if (sexSelected.length === 0) {
+        } else if (sexSelected.length === 2) {
         } else {
-            return false;
+            if (report.PatientSex === 'unknown' || report.PatientSex !== sexSelected[0]) return false;
         }
 
         if (selectedOutcome) {
@@ -755,7 +755,13 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
 
         return true;
     });
-    const groupedData = groupDataByCountryAndProduct(filteredReports);
+    console.log(`Total reports after filtering: ${filteredReports.length}`);
+
+    const limitedReports = filteredReports.slice(0, reportLimit);
+    console.log(`Total reports after limiting: ${limitedReports.length}`);
+    const groupedData = groupDataByCountryAndProduct(limitedReports);
+    console.log(`Grouped Data:`, groupedData);
+
     return groupedData;
 }
 
@@ -994,18 +1000,36 @@ function drawTreemap(data) {
     //     .sum(d => d.value)
     //     .sort((a, b) => d3.ascending(a.data.key, b.data.key));
 
+    let totalReportsShown = 0;
+    data.forEach(country => {
+        country.values.forEach(product => {
+            totalReportsShown += product.reports.length;
+        });
+    });
+    console.log(`Total reports being shown in treemap: ${totalReportsShown}`);
+
     const root = d3.hierarchy({ key: "World", values: data }, d => d.values)
     .sum(d => Math.max(d.value, 0.1))
-    .sort((a, b) => d3.ascending(a.data.key, b.value));
+    .sort(function(a, b) {
+        if (a.depth === b.depth && a.depth === 1) {
+            return d3.ascending(a.data.key, b.data.key);
+        } else if (a.depth === b.depth && a.depth === 2) {
+            return d3.descending(a.value, b.value) || d3.ascending(a.data.key, b.data.key);
+        } else {
+            return 0;
+        }
+    });
 
     const countryPadding = 2;
-    const productMargin = 4;
     const topPadding = 14;
 
     const treemap = d3.treemap()
     .size([outerWidth, outerHeight])
     .paddingOuter(countryPadding)
-    .paddingInner(productMargin)
+    .paddingInner(function(d) {
+        const height = d.y1 - d.y0;
+        return height < 50 ? 1 : 3;
+    })
     .paddingTop(function(d) {
         const height = d.y1 - d.y0;
         return Math.min(topPadding, height * 1);
@@ -1064,7 +1088,7 @@ function drawTreemap(data) {
         .append("title")
         .text(function(d) { return d.data.key; });    
 
-    const products = countries.selectAll(".product")
+        const products = countries.selectAll(".product")
         .data(d => d.children)
         .enter()
         .append("g")
@@ -1077,7 +1101,7 @@ function drawTreemap(data) {
                 console.log("Treemap click handler executed.");
                 console.log("d.data:", d.data);
                 console.log("d.data.reports:", d.data.reports);
-    
+
                 if (d.data.reports && d.data.reports.length > 0) {
                     const firstReport = d.data.reports[0];
                     console.log("First report:", firstReport);
@@ -1087,7 +1111,7 @@ function drawTreemap(data) {
                 } else {
                     currentCountry = 'Unknown Country';
                 }
-    
+
                 console.log("Clicked medicinal product:", d.data.key);
                 console.log("Product reports:", d.data.reports);
                 console.log("Current country:", currentCountry);
