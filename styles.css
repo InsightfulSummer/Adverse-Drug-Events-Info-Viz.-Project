@@ -180,10 +180,14 @@ h4 {
     width: 660px;
     height: 290px;
 <<<<<<< HEAD
+<<<<<<< HEAD
     z-index: 2000;
 =======
     z-index: 1000;
 >>>>>>> 17ee3f7 (info icons added and errors removed)
+=======
+    z-index: 2000;
+>>>>>>> cc6d7bf (visual updates)
     overflow: hidden;
     display: block;
     flex-direction: column;
@@ -241,7 +245,7 @@ h4 {
 
 #treemap {
     overflow: visible;
-    width: 85vw;
+    width: 90vw;
     height: 80vh;
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -326,8 +330,12 @@ h4 {
 >>>>>>> 103bcce (errors rectified)
 =======
     top: 380px;
+<<<<<<< HEAD
     left: 110px;
 >>>>>>> 72e1e88 (visual changes)
+=======
+    left: 45px;
+>>>>>>> cc6d7bf (visual updates)
     display: flex;
     align-items: center;
 }
@@ -475,10 +483,14 @@ h4 {
     }
     50% {
 <<<<<<< HEAD
+<<<<<<< HEAD
         stroke-width: 5px;
 =======
         stroke-width: 10px;
 >>>>>>> d85a6ad (Adding project files)
+=======
+        stroke-width: 5px;
+>>>>>>> cc6d7bf (visual updates)
     }
     100% {
         stroke-width: 2px;
@@ -890,6 +902,7 @@ h4 {
     position: absolute;
     top: 380px;
     right: 980px;
+<<<<<<< HEAD
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px 20px;
@@ -1239,6 +1252,8 @@ h4 {
     position: absolute;
     top: 380px;
     right: 200px;
+=======
+>>>>>>> cc6d7bf (visual updates)
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px 20px;
@@ -1255,8 +1270,8 @@ h4 {
 .toggled-view #treemap {
     float: left;
     width: calc(50% - 15px);
-    margin-left: 10px;
-    margin-right: 20px;
+    margin-left: 15px;
+    margin-right: 15px;
     margin-bottom: 10px;
 }
 
@@ -1264,7 +1279,7 @@ h4 {
     float: right;
     width: calc(50% - 15px);
     margin-top: -82vh;
-    margin-right: 0px;
+    margin-right: 1px;
     margin-bottom: 10px;
     overflow: auto;
 }
@@ -1284,27 +1299,29 @@ h4 {
 
 #country-filter-container {
     text-align: center;
-    margin: 10px 0;
+    margin: 20px 0;
 }
 
 #toggle-country-filter-btn {
-    background-color: #ffffff;
+    background-color: #fafafa;
     border: 1px solid #ccc;
     padding: 8px 16px;
     border-radius: 5px;
+    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
     cursor: pointer;
 }
 
 #country-filter-message {
-    margin-top: 5px;
+    margin-top: 10px;
     font-size: 14px;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
 }
 
 .toggled-view #country-filter-container {
     float: right;
     width: calc(50% - 15px);
-    margin-top: -82vh;
-    margin-right: 0px;
+    margin-top: -89vh;
+    margin-right: 80px;
     margin-bottom: 10px;
     clear: both;
 }
