@@ -9,6 +9,11 @@ const margin = { top: 5, right: 10, bottom: 10, left: 10 },
 
 let selectedOutcome = null;
 
+let isCountryFilterActive = false;
+let currentCountry = null;
+let toggleCountryFilterBtn;
+let countryFilterMessage;
+
 let groupedData = [];
 let totalReports = 0;
 let minDate, maxDate;
@@ -450,7 +455,7 @@ function parseDateString(dateString) {
     return date;
 }
 
-d3.csv("data.csv", function (d, i) {
+d3.csv("data2.csv", function (d, i) {
     d.StartDate = parseDateString(d.StartDate);
     d.EndDate = parseDateString(d.EndDate);
     d.id = d.SafetyreportID;
@@ -469,9 +474,12 @@ d3.csv("data.csv", function (d, i) {
     if (!outcomeColors.hasOwnProperty(d.Outcome)) {
         d.Outcome = "Other";
     }
+    d.ReportCountry = d.ReportCountry || 'Unknown Country';
 
     return d;
 }).then(function (data) {
+
+    console.log("Fields in data[0]:", Object.keys(data[0]));
 
     originalData = data;
     const allStartDates = data.map(d => d.StartDate).filter(d => d != null);
@@ -1061,20 +1069,42 @@ function drawTreemap(data) {
         .enter()
         .append("g")
         .attr("class", "product")
-        .attr("transform", d => `translate(${d.x0 - d.parent.x0},${d.y0 - d.parent.y0})`);
+        .attr("transform", d => `translate(${d.x0 - d.parent.x0},${d.y0 - d.parent.y0})`)
+        .on("click", function(event, d) {
+            try {
+                stopAllBeating();
+                triggerBeatingForProduct([d.data.key]);
+                console.log("Treemap click handler executed.");
+                console.log("d.data:", d.data);
+                console.log("d.data.reports:", d.data.reports);
+    
+                if (d.data.reports && d.data.reports.length > 0) {
+                    const firstReport = d.data.reports[0];
+                    console.log("First report:", firstReport);
+                    console.log("Available fields in first report:", Object.keys(firstReport));
+                    console.log("ReportCountry:", firstReport.ReportCountry);
+                    currentCountry = firstReport.ReportCountry || 'Unknown Country';
+                } else {
+                    currentCountry = 'Unknown Country';
+                }
+    
+                console.log("Clicked medicinal product:", d.data.key);
+                console.log("Product reports:", d.data.reports);
+                console.log("Current country:", currentCountry);
+                showProductInfo(d.data);
+            } catch (error) {
+                console.error("Error in treemap click handler:", error);
+            }
+        });
 
-    products.append("rect")
+        products.append("rect")
+        .datum(d => d)
         .attr("class", "product-outer")
         .attr("width", d => Math.max(0, d.x1 - d.x0))
         .attr("height", d => Math.max(0, d.y1 - d.y0))
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 0)
-        .on("click", function(event, d) {
-            stopAllBeating();
-            triggerBeatingForProduct([d.data.key]);
-            showProductInfo(d.data);
-        });
+        .attr("stroke-width", 0);
 
     products.each(function(d) {
         const productG = d3.select(this);
@@ -1108,12 +1138,7 @@ function drawTreemap(data) {
                     .on("mouseout", function () {
                         tooltip.transition().duration(500).style("opacity", 0);
                     })
-                    .on("click", function (event) {
-                        event.stopPropagation();
-                        stopAllBeating();
-                        triggerBeatingForProduct([d.data.key]);
-                        showProductInfo(d.data);
-                    });
+                    
             });
         }
 
@@ -1258,8 +1283,11 @@ function stopAllBeating() {
 
 function triggerBeatingForProduct(products) {
     stopAllBeating();
+    const normalizedProducts = products.map(p => p.trim().toLowerCase());
+
     d3.selectAll(".product-outer").filter(function (d) {
-        return products.includes(d.data.key);
+        const productKey = d.data.key.trim().toLowerCase();
+        return normalizedProducts.includes(productKey);
     }).classed("beating", true);
 }
 
@@ -1269,14 +1297,25 @@ function normalizeName(name) {
 
 function showProductInfo(productData) {
     currentProductData = productData;
-
+    console.log("In showProductInfo, currentCountry is:", currentCountry);
     d3.select("#sankey-container").html("");
+
+    let reportsToUse;
+    if (!isCountryFilterActive) {
+        reportsToUse = productData.reports;
+    } else {
+        const targetProductName = productData.key.trim().toLowerCase();
+        reportsToUse = originalData.filter(report => report.Medicinalproduct.trim().toLowerCase() === targetProductName);
+
+    }
+
+    window.currentReportsToUse = reportsToUse;
 
     const indicationCounts = {};
     const reactionCounts = {};
 
-    if (productData && productData.reports) {
-        productData.reports.forEach(report => {
+    if (reportsToUse && reportsToUse.length > 0) {
+        reportsToUse.forEach(report => {
             splitBySemicolon(report.DrugIndication).forEach(indication => {
                 if (indication) {
                     const normalizedIndication = indication.trim();
@@ -1317,6 +1356,12 @@ function showProductInfo(productData) {
     ];
 
     drawSankeyDiagram(nodes, links);
+
+    if (isCountryFilterActive) {
+        countryFilterMessage.textContent = 'Showing reports all over the world';
+    } else {
+        countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
+    }
 }
 
 const internalMargin = { left: 10, right: 100 };
@@ -1687,6 +1732,9 @@ function drawSankeyDiagram(nodesData, linksData) {
             .attr("width", d => d.x1 - d.x0)
             .attr("height", d => d.y1 - d.y0)
             .attr("fill", d => {
+                if (d.type === "product") {
+                    return "#d3d3d3";
+                }
                 if (d.type === "indication") {
                     const count = window.totalIndicationCounts[d.name] || 0;
                     return indicationColorScale(count);
@@ -1734,6 +1782,29 @@ function drawSankeyDiagram(nodesData, linksData) {
                     tooltip.transition().duration(500).style("opacity", 0);
                 }
             });
+            nodeGroup.filter(d => d.type === 'product').append("text")
+            .attr("x", d => (d.x0 + d.x1) / 2)
+            .attr("y", d => d.y0 + 30)
+            .attr("text-anchor", "middle")
+            .style("font-size", d => {
+                const nodeHeight = d.y1 - d.y0;
+                const maxFontSize = 14;
+                const fontSize = Math.min(nodeHeight / d.name.length, maxFontSize);
+                return `${fontSize}px`;
+            })
+            .each(function(nodeData) {
+                const textElem = d3.select(this);
+                const letters = nodeData.name.split("");
+                letters.forEach((letter, i) => {
+                    textElem.append("tspan")
+                        .attr("x", (nodeData.x0 + nodeData.x1) / 2)
+                        .attr("dy", i === 0 ? "0em" : "1.5em")
+                        .text(letter);
+                });
+            })
+            .style("fill", "#000")
+            .style("pointer-events", "none");
+
     }
 
     function getPatientDetails(report) {
@@ -1756,36 +1827,42 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function findProductsByReactionOrIndication(type, name) {
         const products = [];
-
+        const targetName = name.trim().toLowerCase();
+    
         originalData.forEach(report => {
-            const productName = report.Medicinalproduct;
-
+            const productName = report.Medicinalproduct.trim();
+            const normalizedProductName = productName.toLowerCase();
+    
             if (type === "indication") {
-                const indications = splitBySemicolon(report.DrugIndication);
-                if (indications.includes(name)) {
-                    products.push(productName);
+                const indications = splitBySemicolon(report.DrugIndication).map(s => s.trim().toLowerCase());
+                if (indications.includes(targetName)) {
+                    products.push(normalizedProductName);
                 }
             } else if (type === "reaction") {
-                const reactions = splitBySemicolon(report.Reactions);
-                if (reactions.includes(name)) {
-                    products.push(productName);
+                const reactions = splitBySemicolon(report.Reactions).map(s => s.trim().toLowerCase());
+                if (reactions.includes(targetName)) {
+                    products.push(normalizedProductName);
                 }
             }
         });
-
+    
         return [...new Set(products)];
     }
+       
 
     function getReportsByNode(nodeData) {
-        return originalData.filter(report => {
+        const nodeName = nodeData.name.trim().toLowerCase();
+        return window.currentReportsToUse.filter(report => {
             if (nodeData.type === 'indication') {
-                return splitBySemicolon(report.DrugIndication).includes(nodeData.name);
+                const indications = splitBySemicolon(report.DrugIndication).map(s => s.trim().toLowerCase());
+                return indications.includes(nodeName);
             } else if (nodeData.type === 'reaction') {
-                return splitBySemicolon(report.Reactions).includes(nodeData.name);
+                const reactions = splitBySemicolon(report.Reactions).map(s => s.trim().toLowerCase());
+                return reactions.includes(nodeName);
             }
             return false;
         });
-    }
+    }       
 
     function capitalize(str) {
         if (typeof str !== 'string') return '';
@@ -1925,7 +2002,30 @@ function capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
+
 document.addEventListener("DOMContentLoaded", function() {
+
+    toggleCountryFilterBtn = document.getElementById('toggle-country-filter-btn');
+    countryFilterMessage = document.getElementById('country-filter-message');
+
+    toggleCountryFilterBtn.textContent = 'See Global Data';
+    countryFilterMessage.textContent = 'Please select a medicinal product to see reports.'
+
+    toggleCountryFilterBtn.addEventListener('click', function() {
+        if (!currentProductData) {
+            alert('Please select a medicinal product first.');
+            return;
+        }
+        isCountryFilterActive = !isCountryFilterActive;
+        if (isCountryFilterActive) {
+            toggleCountryFilterBtn.textContent = 'See Country Specific';
+            countryFilterMessage.textContent = 'Showing reports all over the world';
+        } else {
+            toggleCountryFilterBtn.textContent = 'See Global Data';
+            countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
+        }
+        showProductInfo(currentProductData);
+    });    
 
     const toggleViewBtn = document.getElementById('toggle-view-btn');
     const contentContainer = document.getElementById('content-container');
