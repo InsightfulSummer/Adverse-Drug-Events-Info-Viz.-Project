@@ -1,40 +1,23 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 5c1e280 (Icons for Patient Info Updated)
 html {
     height: 100%;
 }
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Georgia', 'Times New Roman', Times, serif;
     height: 100%;
     margin: 0;
     padding: 0;
 }
 
 #content-container {
-<<<<<<< HEAD
-=======
-body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
->>>>>>> d85a6ad (Adding project files)
-=======
->>>>>>> 5c1e280 (Icons for Patient Info Updated)
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 h1 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
     top: 1px;
     margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 35px;
     color: #000000;
 }
@@ -42,7 +25,6 @@ h1 {
 h2 {
     top: 0px;
     margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 20px;
     color: #c248ff;
     font-weight: bold;
@@ -50,53 +32,16 @@ h2 {
 h3 {
     top: 0px;
     margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 15px;
 }
 h4 {
     top: 0px;
     margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 14px;
-=======
-    margin-top: 25px;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 35px;
->>>>>>> 17ee3f7 (info icons added and errors removed)
-=======
-    top: 1px;
-    margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 35px;
-    color: #000000;
-}
-
-h2 {
-    top: 0px;
-    margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 20px;
-    color: #c248ff;
-    font-weight: bold;
-}
-h3 {
-    top: 0px;
-    margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 15px;
-}
-h4 {
-    top: 0px;
-    margin-top: 0%;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 14px;
->>>>>>> 103bcce (errors rectified)
 }
 
 .info-box {
     position: absolute;
-<<<<<<< HEAD
-<<<<<<< HEAD
     top: 10px;
     left: 10px;
     background: rgba(255, 255, 255, 0.95);
@@ -104,54 +49,22 @@ h4 {
     padding: 15px 20px;
     border-radius: 8px;
     box-shadow: 12px 12px 12px rgba(17, 255, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 18px;
     color: #333;
     max-width: 450px;
-=======
-    top: 5px;
-=======
-    top: 10px;
->>>>>>> 103bcce (errors rectified)
-    left: 10px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 1px solid #e3e2e2;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 12px 12px 12px rgba(17, 255, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 18px;
-    color: #333;
-<<<<<<< HEAD
-    max-width: 500px;
->>>>>>> 17ee3f7 (info icons added and errors removed)
-=======
-    max-width: 450px;
->>>>>>> 103bcce (errors rectified)
     line-height: 1.5;
     z-index: 1000;
 }
 
 .toggle-structure-button {
     position: absolute;
-<<<<<<< HEAD
-<<<<<<< HEAD
     top: 30px;
     right: 60px;
-=======
-    top: 80px;
-    right: 80px;
->>>>>>> 17ee3f7 (info icons added and errors removed)
-=======
-    top: 30px;
-    right: 60px;
->>>>>>> 72e1e88 (visual changes)
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px 20px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 14px;
     color: #333;
     cursor: pointer;
@@ -174,20 +87,11 @@ h4 {
     padding: 10px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 11px;
     color: #333;
     width: 660px;
     height: 290px;
-<<<<<<< HEAD
-<<<<<<< HEAD
     z-index: 2000;
-=======
-    z-index: 1000;
->>>>>>> 17ee3f7 (info icons added and errors removed)
-=======
-    z-index: 2000;
->>>>>>> cc6d7bf (visual updates)
     overflow: hidden;
     display: block;
     flex-direction: column;
@@ -205,7 +109,6 @@ h4 {
     text-align: center;
     font-weight: bold;
     margin-bottom: 1px;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 18px;
 }
 
@@ -229,7 +132,6 @@ h4 {
 
 .node {
     fill: #626262;
-<<<<<<< HEAD
 }
 
 #treemap {
@@ -237,26 +139,6 @@ h4 {
     width: 90vw;
     height: 80vh;
     margin-left: 5px;
-=======
-    margin-top: 20px;
-=======
->>>>>>> 17ee3f7 (info icons added and errors removed)
-}
-
-#treemap {
-    overflow: visible;
-    width: 90vw;
-    height: 80vh;
-<<<<<<< HEAD
-<<<<<<< HEAD
-    margin: 20px;
->>>>>>> d85a6ad (Adding project files)
-=======
-    margin-left: 70px;
->>>>>>> b77150b (filters updated)
-=======
-    margin-left: 5px;
->>>>>>> 72e1e88 (visual changes)
 }
 
 #info-panel {
@@ -306,44 +188,12 @@ h4 {
 
 #search-container {
     position: absolute;
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
     top: 380px;
     left: 45px;
-=======
-    top: 150px;
-    right: 80px;
->>>>>>> d85a6ad (Adding project files)
-=======
-    top: 200px;
-<<<<<<< HEAD
-    right: 20px;
->>>>>>> c297b57 (new Indications/reactions)
-=======
-    left: 20px;
->>>>>>> 81300e4 (timeline and sankey updated)
-=======
-    top: 300px;
-    left: 17px;
->>>>>>> 103bcce (errors rectified)
-=======
-    top: 380px;
-<<<<<<< HEAD
-    left: 110px;
->>>>>>> 72e1e88 (visual changes)
-=======
-    left: 45px;
->>>>>>> cc6d7bf (visual updates)
     display: flex;
     align-items: center;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 17ee3f7 (info icons added and errors removed)
 .info-icon {
     display: inline-block;
     width: 20px;
@@ -357,7 +207,6 @@ h4 {
     font-weight: bold;
     cursor: pointer;
     position: relative;
-    font-family: Arial, sans-serif;
     user-select: none;
     transition: background-color 0.3s;
 }
@@ -413,40 +262,17 @@ h4 {
 
 #search-bar {
     width: 120px;
-<<<<<<< HEAD
-=======
-#search-bar {
-<<<<<<< HEAD
-    width: 200px;
->>>>>>> d85a6ad (Adding project files)
-=======
-    width: 100px;
->>>>>>> c297b57 (new Indications/reactions)
-=======
->>>>>>> 81300e4 (timeline and sankey updated)
     padding: 5px;
     font-size: 14px;
     border: 1px solid #cccccc;
     border-radius: 4px;
     outline: none;
-<<<<<<< HEAD
-<<<<<<< HEAD
     }
-=======
-}
->>>>>>> d85a6ad (Adding project files)
-=======
-    }
->>>>>>> 72e1e88 (visual changes)
 
 #search-bar::placeholder {
     color: #999;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 81300e4 (timeline and sankey updated)
 #search-dropdown {
     display: none;
     background-color: #fff;
@@ -466,11 +292,6 @@ h4 {
     line-height: 1.5;
 }
 
-<<<<<<< HEAD
-=======
->>>>>>> d85a6ad (Adding project files)
-=======
->>>>>>> 81300e4 (timeline and sankey updated)
 .product-outer {
     stroke: rgb(255, 255, 255);
     stroke-width: 0.1px;
@@ -482,15 +303,7 @@ h4 {
         stroke-width: 2px;
     }
     50% {
-<<<<<<< HEAD
-<<<<<<< HEAD
         stroke-width: 5px;
-=======
-        stroke-width: 10px;
->>>>>>> d85a6ad (Adding project files)
-=======
-        stroke-width: 5px;
->>>>>>> cc6d7bf (visual updates)
     }
     100% {
         stroke-width: 2px;
@@ -502,22 +315,11 @@ h4 {
     stroke: rgb(0, 0, 0);
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 445977d (filters & sankey Updated)
 #legend-container {
     display: flex;
     justify-content: center;
     align-items: center;
-<<<<<<< HEAD
-<<<<<<< HEAD
     z-index: 1000;
-=======
->>>>>>> 445977d (filters & sankey Updated)
-=======
-    z-index: 1000;
->>>>>>> 72e1e88 (visual changes)
 }
 
 .legend circle, .legend rect {
@@ -526,45 +328,13 @@ h4 {
 }
 
 .legend text {
-    font-family: Arial, sans-serif;
     fill: #000;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 #navigation-instructions {
     position: relative;
     right: 10px;
     top: 75px;
-=======
-=======
-
->>>>>>> 445977d (filters & sankey Updated)
-.tooltip {
-    position: absolute;
-    text-align: center;
-    width: 100px;
-    padding: 8px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
-=======
->>>>>>> 81300e4 (timeline and sankey updated)
-#navigation-instructions {
-<<<<<<< HEAD
-    position: absolute;
-    right: 5px;
-    top: 500px;
->>>>>>> d85a6ad (Adding project files)
-=======
-    position: relative;
-    right: 10px;
-    top: 75px;
->>>>>>> 72e1e88 (visual changes)
     text-align: right;
     color: rgb(68, 68, 68);
 }
@@ -594,36 +364,6 @@ h4 {
     transition: transform 0.3s ease;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-.red-hexagon {
-    transform-origin: 50% 0%;
-    transform: scale(2);
-}
-
-.green-square {
-    transform-origin: 0% 0%;
-    transform: scale(2);
-}
-
-=======
->>>>>>> c297b57 (new Indications/reactions)
-.bouncing {
-    animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-    0% { transform: translateY(0px); }
-    20% { transform: translateY(-5px); }
-    50% { transform: translateY(-15px); }
-    100% { transform: translateY(0px); }
-}
-
->>>>>>> d85a6ad (Adding project files)
-=======
->>>>>>> 81300e4 (timeline and sankey updated)
 .faded {
     opacity: 0.2;
     pointer-events: none;
@@ -636,23 +376,9 @@ h4 {
 }
 
 #report-count {
-<<<<<<< HEAD
-<<<<<<< HEAD
     font-size: 28px;
     font-weight: bold;
     margin-bottom: 10px;
-    font-family: 'Times New Roman';
-=======
-    font-size: 18px;
-    font-weight: bold;
-    margin-bottom: 10px;
->>>>>>> d85a6ad (Adding project files)
-=======
-    font-size: 28px;
-    font-weight: bold;
-    margin-bottom: 10px;
-    font-family: 'Times New Roman';
->>>>>>> 17ee3f7 (info icons added and errors removed)
 }
 
 #report-slider {
@@ -685,8 +411,6 @@ h4 {
     cursor: pointer;
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 #timeline-container {
     width: 80vw;
     margin-top: 0px;
@@ -886,7 +610,6 @@ h4 {
 }
 
 .link-label {
-    font-family: Arial, sans-serif;
     pointer-events: none;
     text-anchor: left;
     -o-table-baseline: middle;
@@ -902,13 +625,11 @@ h4 {
     position: absolute;
     top: 380px;
     right: 980px;
-<<<<<<< HEAD
     background-color: #ffffff;
     border: 1px solid #ccc;
     padding: 10px 20px;
     border-radius: 8px;
     box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
     font-size: 14px;
     color: #333;
     cursor: pointer;
@@ -963,7 +684,6 @@ h4 {
 #country-filter-message {
     margin-top: 10px;
     font-size: 14px;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
 }
 
 .toggled-view #country-filter-container {
@@ -974,355 +694,10 @@ h4 {
     margin-bottom: 10px;
     clear: both;
 }
-=======
 
-=======
->>>>>>> c297b57 (new Indications/reactions)
-#timeline-container {
-    width: 80vw;
-    margin-top: 0px;
-    margin-bottom: 60px;
-    left: 35px;
-    position: relative;
-}
-
-#timeline-bar {
-    position: relative;
-    width: 100%;
-    height: 18px;
-    background-color: #e0e0e0;
-    overflow: hidden;
-    border-radius: 5px;
-}
-
-#timeline-bar svg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 18px;
-    z-index: 1;
-    border-radius: 5px;
-}
-
-#selected-range {
-    position: absolute;
-    top: 0;
-    height: 8px;
-    background-color: rgba(255, 255, 255, 0);
-    z-index: 2;
-    pointer-events: none;
-    border-radius: 4px;
-    transition: left 0.2s ease, width 0.2s ease;
-}
-
-.handle {
-    position: absolute;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    background-color: #ff7272;
-    border: 2px solid #000000;
-    cursor: pointer;
-    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
-    z-index: 3;
-    transition: left 0.2s ease;
-}
-
-.handle:hover {
-    background-color: #f0f0f0;
-}
-
-.date-display {
-    position: absolute;
-    bottom: 100%;
-    margin-bottom: 5px;
-    transform: translateX(-50%);
-    z-index: 4;
-    background: rgba(255, 255, 255, 0);
-    padding: 2px 5px;
-    border-radius: 3px;
-    font-size: 12px;
-    color: #000;
-    white-space: nowrap;
-}
-
-.tooltip {
-    position: absolute;
-    text-align: center;
-    padding: 6px;
-    font: 12px sans-serif;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    border: 0px;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
-.detail-box {
-    font: 14px sans-serif;
-    width: 180px;
-    background-color: #ffffffdd;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    position: absolute;
-}
-
-.medical-product {
-    color: lightblue;
-    font-weight: bold;
-}
-
-.dosage {
-    color: rgb(128, 128, 0);
-    font-weight: bold;
-}
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
->>>>>>> d85a6ad (Adding project files)
-=======
-
-
-
->>>>>>> 5c1e280 (Icons for Patient Info Updated)
-=======
->>>>>>> c297b57 (new Indications/reactions)
-=======
-
-.treatment-duration {
-    color: #D8BFD8;
-    font-weight: bold;
-}
-
-.start-date {
-    color: lightpink;
-    font-weight: bold;
-}
-
-.end-date {
-    color: #FF1493;
-    font-weight: bold;
-}
-
-.indications {
-    color: lightgreen;
-    font-weight: bold;
-}
-
-.reactions {
-    color: lightcoral;
-    font-weight: bold;
-}
-
-.circular-slider-track {
-    fill: linear-gradient(to right, #d5d5d5, #7a7a54, #62ab5d, #5c9596, #589b90);
-    stroke-width: 2;
-}
-
-.circular-slider-selection {
-    fill-opacity: 0;
-    pointer-events: none;
-}
-
-.circular-slider-handle.beating {
-    animation: beat 1s infinite;
-}
-
-.circular-slider-handle:hover {
-    fill: #f0f0f0;
-}
-
-.circular-slider-handle.sex-handle {
-    stroke: #ff9676;
-}
-
-.circular-slider-handle.active {
-    fill: #000000;
-    stroke: #ff562200;
-}
-
-.slider-label {
-    font-size: 12px;
-    fill: #000000;
-    text-anchor: middle;
-    -o-table-baseline: middle;
-}
-
-.circular-slider-selection {
-    stroke: rgba(255, 255, 255, 0);
-    stroke-width: 20;
-    opacity: 0.7;
-}
-
-#sankey-container {
-    align-items: center;
-    margin-left: 100px;
-    margin-top: 80px;
-    margin-right: 50px;
-    width: 90%;
-    height: 80vh;
-    overflow: visible;
-}
-
-#filter-container {
-    position: absolute;
-    right: 100px;
-    top: 58px;
-    width: 180px;
-    height: 450px;
-    background: #00000000;
-    padding: 5px;
-    z-index: 0;
-    border-radius: 10px;
-    text-align: center;
-}
-
-<<<<<<< HEAD
-.tooltip {
-    position: absolute;
-    text-align: center;
-    padding: 6px;
-    font: 12px sans-serif;
-    background: rgba(0, 0, 0, 0.7);
-    color: #fff;
-    border: 0px;
-    border-radius: 4px;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
-.detail-box {
-    position: absolute;
-    background-color: #ffffffdd;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-    font: 14px sans-serif;
-}
-
-<<<<<<< HEAD
-.tooltip {
-    position: absolute;
-    text-align: center;
-    width: 100px;
-    padding: 8px;
-    font: 12px sans-serif;
-    background: lightsteelblue;
-    border: 0;
-    border-radius: 4px;
-    pointer-events: none;
-}
->>>>>>> 445977d (filters & sankey Updated)
-=======
-=======
->>>>>>> 17ee3f7 (info icons added and errors removed)
-@media screen and (max-width: 1600px) {
-    #sankey-container {
-        margin-left: 50px;
-        margin-right: 50px;
+@media screen and (max-width: 768px) {
+    #treemap, #sankey-container {
+        width: 100%;
+        height: auto;
     }
 }
-<<<<<<< HEAD
->>>>>>> 81300e4 (timeline and sankey updated)
-=======
-
-.link-label {
-    font-family: Arial, sans-serif;
-    pointer-events: none;
-    text-anchor: left;
-    -o-table-baseline: middle;
-    white-space: nowrap;
-    fill: #000000c6;
-}
-
-.link-label-background {
-    fill: rgb(248, 0, 0);
-}
-<<<<<<< HEAD
->>>>>>> 17ee3f7 (info icons added and errors removed)
-=======
-
-.toggle-view-button {
-    position: absolute;
-    top: 380px;
-    right: 200px;
-=======
->>>>>>> cc6d7bf (visual updates)
-    background-color: #ffffff;
-    border: 1px solid #ccc;
-    padding: 10px 20px;
-    border-radius: 8px;
-    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-    font-size: 14px;
-    color: #333;
-    cursor: pointer;
-    z-index: 1;
-    transition: all 0.3s ease;
-}
-
-.toggled-view #treemap {
-    float: left;
-    width: calc(50% - 15px);
-    margin-left: 15px;
-    margin-right: 15px;
-    margin-bottom: 10px;
-}
-
-.toggled-view #sankey-container {
-    float: right;
-    width: calc(50% - 15px);
-    margin-top: -82vh;
-    margin-right: 1px;
-    margin-bottom: 10px;
-    overflow: auto;
-}
-
-
-.toggled-view #filter-container {
-    position: absolute;
-    right: 100px;
-    top: 58px;
-}
-
-.toggled-view #navigation-instructions {
-    position: relative;
-    right: 10px;
-    top: 75px;
-}
-
-#country-filter-container {
-    text-align: center;
-    margin: 20px 0;
-}
-
-#toggle-country-filter-btn {
-    background-color: #fafafa;
-    border: 1px solid #ccc;
-    padding: 8px 16px;
-    border-radius: 5px;
-    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
-    cursor: pointer;
-}
-
-#country-filter-message {
-    margin-top: 10px;
-    font-size: 14px;
-    font-family: 'Georgia', 'Times New Roman', Times, serif;
-}
-
-.toggled-view #country-filter-container {
-    float: right;
-    width: calc(50% - 15px);
-    margin-top: -89vh;
-    margin-right: 80px;
-    margin-bottom: 10px;
-    clear: both;
-}
->>>>>>> 72e1e88 (visual changes)

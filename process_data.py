@@ -12,13 +12,13 @@ country_counts = data[country_column].value_counts()
 sampled_data = pd.DataFrame(columns=data.columns)
 
 for country, count in country_counts.items():
-    if count < 50:
+    if count < 100:
         sampled_data = pd.concat([sampled_data, data[data[country_column] == country]])
     else:
         proportion = count / len(data)
         target_count = int(proportion * target_total)
 
-        target_count = max(50, min(target_count, 700))
+        target_count = max(100, min(target_count, 900))
         sampled_data = pd.concat(
             [sampled_data, data[data[country_column] == country].sample(n=target_count, random_state=42)]
         )
