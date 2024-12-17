@@ -1,11 +1,8 @@
 const _ = window._;
 let originalData = [];
-const margin = { top: 5, right: 10, bottom: 10, left: 10 },
+const margin = { top: 10, right: 10, bottom: 10, left: 10 },
     outerWidth = document.getElementById("treemap").clientWidth - margin.left - margin.right,
-    outerHeight = document.getElementById("treemap").clientHeight - margin.top - margin.bottom,
-    productMargin = 4,
-    countryPadding = 4;
-
+    outerHeight = document.getElementById("treemap").clientHeight - margin.top - margin.bottom;
 let selectedOutcome = null;
 
 let isCountryFilterActive = false;
@@ -22,6 +19,8 @@ let currentReports = [];
 let reactionColorScale;
 let indicationColorScale;
 let beatingProducts = [];
+
+let isToggled = false;
 
 const timelineBar = d3.select('#timeline-bar');
 let weeklyReportCounts = [];
@@ -55,14 +54,14 @@ const svg = d3.select("#treemap")
     .append("svg")
     .attr("width", outerWidth + margin.left + margin.right)
     .attr("height", outerHeight + margin.top + margin.bottom)
-    .style("border", "4px solid black")
+    .style("border", "2px solid black")
     .attr("class", "world-svg");
 
 const zoomGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
 const zoom = d3.zoom()
-    .scaleExtent([1, 8])
+    .scaleExtent([0.5, 12])
     .on("zoom", (event) => {
         zoomGroup.attr("transform", event.transform);
     });
@@ -126,28 +125,21 @@ let circularFilters = {
 const gap = 2 * Math.PI / 180;
 
 const segments = [
-    {
-        name: 'Weight',
-        startAngle: 0 + gap,
-        endAngle: Math.PI - gap,
-        color: '#7a7a54',
-        range: [1, 200]
-    },
-    {
-        name: 'Age',
-        startAngle: Math.PI + gap,
-        endAngle: Math.PI * 3 / 2 - gap,
-        color: '#62ab5d',
-        range: [1, 100]
-    },
-    {
-        name: 'Sex',
-        startAngle: Math.PI * 3 / 2 + gap,
-        endAngle: 2 * Math.PI - gap,
-        color: '#5c9596',
-        range: [0, 1]
-    }
-];
+  {
+    name: 'Weight',
+    startAngle: 0 + gap,
+    endAngle: Math.PI - gap,
+    color: '#7a7a54',
+    range: [1, 200]
+  },
+  {
+    name: 'Age',
+    startAngle: Math.PI + gap,
+    endAngle: (2 * Math.PI) - gap,
+    color: '#62ab5d',
+    range: [1, 100]
+  }
+]; 
 
 const circularSliderSVG = d3.select("#circular-slider")
     .attr("width", 300)
@@ -217,28 +209,96 @@ segments.forEach(segment => {
         .attr("d", d3.arc()
             .innerRadius(sliderRadius)
             .outerRadius(sliderRadius + sliderThickness)
-            .startAngle(segment.startAngle)
-            .endAngle(segment.endAngle)()
+            .startAngle(segment.startAngle-55)
+            .endAngle(segment.endAngle-55)()
         )
         .attr("fill", `url(#${gradientId})`);
-});
 
-segments.forEach(segment => {
-    segment.selectionArc = circularSliderSVG.append("path")
+        segment.selectionArc = circularSliderSVG.append("path")
         .attr("class", "circular-slider-selection")
         .attr("fill", `url(#gradient-${segment.name})`);
-    updateSelectionArc(segment);
+        updateSelectionArc(segment);
 });
 
 segments.forEach(segment => {
-    if (segment.name !== 'Sex') {
-        addHandle(segment, 'min');
-        addHandle(segment, 'max');
-    } else {
-        addSexHandle(segment, 'male');
-        addSexHandle(segment, 'female');
-    }
+    addHandle(segment, 'min');
+    addHandle(segment, 'max');
 });
+
+circularFilters.Sex.male = true;
+circularFilters.Sex.female = true;
+
+const maleButtonGroup = circularSliderSVG.append("g")
+    .attr("class", "male-button-group")
+    .attr("transform", `translate(0, 25)`);
+
+maleButtonGroup.append("rect")
+    .attr("x", -50)
+    .attr("y", -12)
+    .attr("width", 40)
+    .attr("height", 20)
+    .attr("rx", 4)
+    .attr("ry", 4)
+    .attr("fill", "#d1d1ff")
+    .attr("stroke", "#000")
+    .style("cursor", "pointer")
+    .on("click", function() {
+        circularFilters.Sex.male = !circularFilters.Sex.male;
+        updateSexButtons();
+        updateTreemap();
+    });
+
+maleButtonGroup.append("text")
+    .attr("x", -30)
+    .attr("y", 3)
+    .attr("text-anchor", "middle")
+    .attr("font-size", "10px")
+    .style("cursor", "pointer")
+    .text("MALE")
+    .on("click", function() {
+        circularFilters.Sex.male = !circularFilters.Sex.male;
+        updateSexButtons();
+        updateTreemap();
+    });
+
+const femaleButtonGroup = circularSliderSVG.append("g")
+    .attr("class", "female-button-group")
+    .attr("transform", `translate(50, 25)`);
+
+femaleButtonGroup.append("rect")
+    .attr("x", -50)
+    .attr("y", -12)
+    .attr("width", 50)
+    .attr("height", 20)
+    .attr("rx", 4)
+    .attr("ry", 4)
+    .attr("fill", "#ffd1d1")
+    .attr("stroke", "#000")
+    .style("cursor", "pointer")
+    .on("click", function() {
+        circularFilters.Sex.female = !circularFilters.Sex.female;
+        updateSexButtons();
+        updateTreemap();
+    });
+
+femaleButtonGroup.append("text")
+    .attr("x", -25)
+    .attr("y", 3)
+    .attr("text-anchor", "middle")
+    .attr("font-size", "10px")
+    .style("cursor", "pointer")
+    .text("FEMALE")
+    .on("click", function() {
+        circularFilters.Sex.female = !circularFilters.Sex.female;
+        updateSexButtons();
+        updateTreemap();
+    });
+
+function updateSexButtons() {
+    maleButtonGroup.select("rect").attr("fill", circularFilters.Sex.male ? "#d1d1ff" : "#fff");
+    femaleButtonGroup.select("rect").attr("fill", circularFilters.Sex.female ? "#ffd1d1" : "#fff");
+}
+
 
 function addHandle(segment, type) {
     const initialValue = type === 'min' ? segment.range[0] : segment.range[1];
@@ -262,33 +322,6 @@ function addHandle(segment, type) {
 
     handle.append("title")
         .text(type === 'min' ? `${segment.name} Min` : `${segment.name} Max`);
-}
-
-function addSexHandle(segment, type) {
-    const angle = type === 'male' ? segment.startAngle : segment.endAngle;
-    const x = sliderRadius * Math.cos(angle);
-    const y = sliderRadius * Math.sin(angle);
-
-    const handle = circularSliderSVG.append("circle")
-        .attr("class", `circular-slider-handle sex-handle ${type}`)
-        .attr("r", 8)
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff")
-        .attr("stroke", segment.color)
-        .attr("stroke-width", 2)
-        .on("mouseover", function() {
-            d3.select(this).attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffb3b3" : "#b3b3ff") : "#f0f0f0");
-        })
-        .on("mouseout", function() {
-            d3.select(this).attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff");
-        })
-        .call(d3.drag()
-            .on("drag", function(event) { handleSexDrag(event, segment, type, this); })
-        );
-
-    handle.append("title")
-        .text(type.charAt(0).toUpperCase() + type.slice(1));
 }
 
 function handleDrag(event, segment, type, handle) {
@@ -415,12 +448,6 @@ function updateFilterDisplays() {
 
     d3.select(".weight-text")
         .text(`${circularFilters.Weight.min} - ${circularFilters.Weight.max} kg`);
-
-    const sexSelection = [];
-    if (circularFilters.Sex.male) sexSelection.push("Male");
-    if (circularFilters.Sex.female) sexSelection.push("Female");
-    d3.select(".sex-text")
-        .text(sexSelection.length === 0 ? "None" : sexSelection.join(" & "));
 }
 
 updateFilterDisplays();
@@ -454,7 +481,7 @@ function parseDateString(dateString) {
     return date;
 }
 
-d3.csv("data2.csv", function (d, i) {
+d3.csv("data.csv", function (d, i) {
     d.StartDate = parseDateString(d.StartDate);
     d.EndDate = parseDateString(d.EndDate);
     d.id = d.SafetyreportID;
@@ -664,6 +691,7 @@ d3.csv("data2.csv", function (d, i) {
                         .filter(function (d) { return d.data.key === product; })
                         .classed("beating", true);
                 });
+                updateFadedState();
         
                 let dropdownContent = `<strong>${totalMatches} match${totalMatches !== 1 ? 'es' : ''} found</strong><br/>`;
         
@@ -678,9 +706,6 @@ d3.csv("data2.csv", function (d, i) {
                 }
                 if (indicationMatches > 0) {
                     dropdownContent += `${indicationMatches} Indication${indicationMatches !== 1 ? 's' : ''}<br/>`;
-                }
-                if (genericNameMatches > 0) {
-                    dropdownContent += `${genericNameMatches} Generic Name${genericNameMatches !== 1 ? 's' : ''}<br/>`;
                 }
                 if (brandNameMatches > 0) {
                     dropdownContent += `${brandNameMatches} Brand Name${brandNameMatches !== 1 ? 's' : ''}<br/>`;
@@ -718,7 +743,7 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
         const reportEndDate = report.EndDate;
         const dateValid = (!reportEndDate || (reportEndDate >= selectedStartDate && reportEndDate <= selectedEndDate));
 
-        if (!dateValid) return true;
+        if (!dateValid) return false;
 
         if (circularFilters.Age.min > 1 || circularFilters.Age.max < 100) {
             if (report.PatientAge === 'unknown') return false;
@@ -747,7 +772,7 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
             if (report.Outcome !== selectedOutcome) {
                 return false;
             }
-        }
+        }        
 
         return true;
     });
@@ -887,6 +912,9 @@ function initializeDateRangeSlider() {
         document.addEventListener('mouseup', handleMouseUp);
     });
 
+    document.getElementById('content-container').appendChild(leftDateDisplay);
+    document.getElementById('content-container').appendChild(rightDateDisplay);
+
     function handleMouseMove(e) {
         if (!activeHandle) return;
         const deltaX = e.clientX - startX;
@@ -920,8 +948,8 @@ function initializeDateRangeSlider() {
     }
 
     function updateSelectedRange() {
-        const leftHandleLeft = parseInt(leftHandle.style.left);
-        const rightHandleLeft = parseInt(rightHandle.style.left);
+        const leftHandleLeft = parseInt(leftHandle.style.left, 10);
+        const rightHandleLeft = parseInt(rightHandle.style.left, 10);
     
         selectedStartDate = calculateDateFromX(leftHandleLeft + 8);
         selectedEndDate = calculateDateFromX(rightHandleLeft + 8);
@@ -938,11 +966,16 @@ function initializeDateRangeSlider() {
         leftDateDisplay.textContent = formatDate(selectedStartDate);
         rightDateDisplay.textContent = formatDate(selectedEndDate);
     
-        leftDateDisplay.style.left = `${leftHandleLeft + 40}px`;
-        leftDateDisplay.style.top = `${0}px`;
-        rightDateDisplay.style.left = `${rightHandleLeft - 40}px`;
-        rightDateDisplay.style.top = `${0}px`;
-    }
+        const timelineBarRect = timelineBar.node().getBoundingClientRect();
+    
+        leftDateDisplay.style.position = 'absolute';
+        leftDateDisplay.style.top = (timelineBarRect.bottom + 5) + 'px';
+        leftDateDisplay.style.left = (timelineBarRect.left + leftHandleLeft) + 'px';
+    
+        rightDateDisplay.style.position = 'absolute';
+        rightDateDisplay.style.top = (timelineBarRect.bottom + 5) + 'px';
+        rightDateDisplay.style.left = (timelineBarRect.left + rightHandleLeft) + 'px';
+    }    
     
 
     function calculateDateFromX(x) {
@@ -1022,7 +1055,7 @@ function drawTreemap(data) {
         .attr("height", d => Math.floor(d.y1 - d.y0))
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 0.1)
+        .attr("stroke-width", 0.2)
         .append("title")
         .text(function(d) { return d.data.key; })
         .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
@@ -1067,7 +1100,8 @@ function drawTreemap(data) {
         .on("click", function(event, d) {
             try {
                 stopAllBeating();
-                triggerBeatingForProduct([d.data.key]);
+                triggerBeatingForProduct([d.data.key]);                
+                updateFadedState();
                 if (d.data.reports && d.data.reports.length > 0) {
                     const firstReport = d.data.reports[0];
                     currentCountry = firstReport.ReportCountry || 'Unknown Country';
@@ -1121,10 +1155,8 @@ function drawTreemap(data) {
             });
         }
 
-        const allGenericNames = new Set();
         const allBrandNames = new Set();
         d.data.reports.forEach(report => {
-            splitBySemicolon(report.GenericName).forEach(name => allGenericNames.add(name));
             splitBySemicolon(report.BrandName).forEach(name => allBrandNames.add(name));
         });
         const dotGroup = productG.append("g").attr("class", "dot-group");
@@ -1166,7 +1198,6 @@ function drawTreemap(data) {
                 }
             });
         };
-        placeDotsRadially(Array.from(allGenericNames), "green");
         placeDotsRadially(Array.from(allBrandNames), "blue");
     });
 }
@@ -1183,19 +1214,6 @@ function drawLegend() {
     const legendGroup = legendSvg.append("g")
         .attr("class", "legend")
         .attr("transform", `translate(${outerWidth / 4}, 20)`);
-
-    legendGroup.append("circle")
-        .attr("cx", -200)
-        .attr("cy", 0)
-        .attr("r", 10)
-        .attr("fill", "green");
-
-    legendGroup.append("text")
-        .attr("x", -180)
-        .attr("y", 5)
-        .text("Generic Names")
-        .style("font-size", "12px")
-        .attr("text-anchor", "start");
 
     legendGroup.append("circle")
         .attr("cx", -75)
@@ -1251,6 +1269,7 @@ function drawLegend() {
 
 function stopAllBeating() {
     d3.selectAll(".beating").classed("beating", false);
+    updateFadedState();
 }
 
 function triggerBeatingForProduct(products) {
@@ -1261,6 +1280,8 @@ function triggerBeatingForProduct(products) {
         const productKey = d.data.key.trim().toLowerCase();
         return normalizedProducts.includes(productKey);
     }).classed("beating", true);
+
+    updateFadedState();
 }
 
 function showProductInfo(productData) {
@@ -1268,13 +1289,16 @@ function showProductInfo(productData) {
     d3.select("#sankey-container").html("");
 
     let reportsToUse;
-    if (!isCountryFilterActive) {
-        reportsToUse = productData.reports;
-    } else {
+    if (isCountryFilterActive) {
         const targetProductName = productData.key.trim().toLowerCase();
-        reportsToUse = originalData.filter(report => report.Medicinalproduct.trim().toLowerCase() === targetProductName);
-
-    }
+        reportsToUse = originalData.filter(
+            report => report.Medicinalproduct.trim().toLowerCase() === targetProductName
+        );
+        countryFilterMessage.textContent = 'Showing reports all over the world';
+    } else {
+        reportsToUse = productData.reports;
+        countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
+    }         
 
     window.currentReportsToUse = reportsToUse;
 
@@ -1321,14 +1345,12 @@ function showProductInfo(productData) {
             originalValue: reactionCounts[name],
         })),
     ];
+    const productNode = nodes.find(n => n.type === 'product');
+    productNode.indicationCount = allIndications.length;
+    productNode.reactionCount = allReactions.length;
+
 
     drawSankeyDiagram(nodes, links);
-
-    if (isCountryFilterActive) {
-        countryFilterMessage.textContent = 'Showing reports all over the world';
-    } else {
-        countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
-    }
 }
 
 const internalMargin = { left: 10, right: 100 };
@@ -1388,6 +1410,15 @@ function drawSankeyDiagram(nodesData, linksData) {
             .nodeSort(null);
     
         sankey(graph);
+
+    if (isToggled) {
+        const sankeyZoom = d3.zoom()
+            .scaleExtent([0.5, 5])
+            .on("zoom", (event) => {
+                diagramGroup.attr("transform", event.transform);
+            });
+        d3.select("#sankey-container svg").call(sankeyZoom);
+    }
     
         let nodeHeights = graph.nodes.map(d => d.y1 - d.y0);
         let minActualNodeHeight = d3.min(nodeHeights);
@@ -1432,13 +1463,19 @@ function drawSankeyDiagram(nodesData, linksData) {
         sankeySvg
             .attr("height", sankeyHeight);
     
-        const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
-        const translateX = (sankeyWidth - diagramWidth) / 2;
-    
-        const diagramGroup = sankeySvg.append("g")
-            .attr("transform", `translate(${translateX},0)`);
-    
-        drawSankeyElements(diagramGroup, graph);
+            const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
+            const translateX = (sankeyWidth - diagramWidth) / 2;
+        
+            const diagramGroup = sankeySvg.append("g")
+                .attr("transform", `translate(${translateX},0)`);
+        
+            drawSankeyElements(diagramGroup, graph);
+        if (isToggled) {
+            diagramGroup.attr("transform", diagramGroup.attr("transform") + " scale(0.5)");
+        } else {
+            diagramGroup.attr("transform", diagramGroup.attr("transform").replace(" scale(0.5)", ""));
+        }        
+
     }
     
     
@@ -1735,6 +1772,7 @@ function drawSankeyDiagram(nodesData, linksData) {
                 } else if (d.type === 'report_detail') {
                     event.stopPropagation();
                     stopAllBeating();
+                    updateFadedState();
                     d3.selectAll(".report_detail").classed("beating", false);
                     d3.select(this).classed("beating", true);
                     showReportDetails(event, d);
@@ -1759,6 +1797,15 @@ function drawSankeyDiagram(nodesData, linksData) {
                 const fontSize = Math.min(nodeHeight / d.name.length, maxFontSize);
                 return `${fontSize}px`;
             })
+            .on("mouseover", function(event, d) {
+                tooltip.transition().duration(200).style("opacity", 1);
+                tooltip.html(`${d.reactionCount} Reactions<br/>${d.indicationCount} Indications`)
+                    .style("left", `${event.pageX + 5}px`)
+                    .style("top", `${event.pageY - 28}px`);
+            })
+            .on("mouseout", function() {
+                tooltip.transition().duration(500).style("opacity", 0);
+            })
             .each(function(nodeData) {
                 const textElem = d3.select(this);
                 const letters = nodeData.name.split("");
@@ -1769,8 +1816,7 @@ function drawSankeyDiagram(nodesData, linksData) {
                         .text(letter);
                 });
             })
-            .style("fill", "#000")
-            .style("pointer-events", "none");
+            .style("fill", "#000");
 
     }
 
@@ -1936,6 +1982,7 @@ function drawSankeyDiagram(nodesData, linksData) {
                 detailBox.remove();
                 d3.select("body").on("click.detailBox", null);
                 stopAllBeating();
+                updateFadedState();
             }
         });
     
@@ -1963,13 +2010,28 @@ function showTooltip(element, text) {
         .style("top", `${rect.top + window.scrollY - 30}px`);
 }
 
-document.addEventListener("DOMContentLoaded", function() {
+function updateFadedState() {
+    const beatingNodes = d3.selectAll(".product-outer.beating").nodes();
+    const anyBeating = beatingNodes.length > 0;
+  
+    if (anyBeating) {
+      const beatingKeys = beatingNodes.map(node => {
+        const datum = d3.select(node).datum();
+        return datum.data.key.toLowerCase();
+      });
+  
+      d3.selectAll(".product").classed("faded", function(d) {
+        const productKey = d.data.key.toLowerCase();
+        return !beatingKeys.includes(productKey);
+      });
+    } else {
+      d3.selectAll(".product").classed("faded", false);
+    }
+  }  
 
+  document.addEventListener("DOMContentLoaded", function() {
     toggleCountryFilterBtn = document.getElementById('toggle-country-filter-btn');
     countryFilterMessage = document.getElementById('country-filter-message');
-
-    toggleCountryFilterBtn.textContent = 'See Global Data';
-    countryFilterMessage.textContent = 'Please select a medicinal product to see reports.'
 
     toggleCountryFilterBtn.addEventListener('click', function() {
         if (!currentProductData) {
@@ -1979,44 +2041,62 @@ document.addEventListener("DOMContentLoaded", function() {
         isCountryFilterActive = !isCountryFilterActive;
         if (isCountryFilterActive) {
             toggleCountryFilterBtn.textContent = 'See Country Specific';
-            countryFilterMessage.textContent = 'Showing reports all over the world';
         } else {
             toggleCountryFilterBtn.textContent = 'See Global Data';
-            countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
         }
         showProductInfo(currentProductData);
-    });    
+    });
 
     const toggleViewBtn = document.getElementById('toggle-view-btn');
     const contentContainer = document.getElementById('content-container');
-    let isToggled = false;
 
     toggleViewBtn.addEventListener('click', function() {
         isToggled = !isToggled;
         if (isToggled) {
             contentContainer.classList.add('toggled-view');
             resizeSVGsForToggledView();
+            d3.select("#sankey-container")
+                .style("border", "1px solid #ccc")
+                .style("padding", "5px");
         } else {
             contentContainer.classList.remove('toggled-view');
             resetSVGsToDefault();
+            d3.select("#sankey-container")
+                .style("border", "none")
+                .style("padding", "0");
         }
     });
 
     function resizeSVGsForToggledView() {
+        const treemapElement = document.getElementById("treemap");
+        const newWidth = treemapElement.clientWidth;
+        const newHeight = treemapElement.clientHeight;
         d3.select("#treemap svg")
-            .attr("width", document.getElementById("treemap").clientWidth)
-            .attr("height", outerHeight);
+            .attr("width", newWidth)
+            .attr("height", newHeight)
+            .style("border", "2px solid black");
+
+        const bbox = zoomGroup.node().getBBox();
+        const scale = Math.min(newWidth / bbox.width, newHeight / bbox.height);
+        const translateX = (newWidth - bbox.width * scale) / 2;
+        const translateY = (newHeight - bbox.height * scale) / 2;
+
+        svg.transition().duration(500).call(
+            zoom.transform,
+            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
+        );
 
         d3.select("#sankey-container svg")
             .attr("width", document.getElementById("sankey-container").clientWidth)
-            .attr("height", outerHeight)
+            .attr("height", newHeight)
             .style("overflow", "scroll");
     }
 
     function resetSVGsToDefault() {
         d3.select("#treemap svg")
             .attr("width", outerWidth + margin.left + margin.right)
-            .attr("height", outerHeight + margin.top + margin.bottom);
+            .attr("height", outerHeight + margin.top + margin.bottom)
+            .style("border", "1px solid black");
 
         d3.select("#sankey-container svg")
             .attr("width", document.getElementById("sankey-container").clientWidth)
@@ -2045,156 +2125,206 @@ document.addEventListener("DOMContentLoaded", function() {
         event.stopPropagation();
     });
 
-        const data = {
-            name: "Country",
-            children: [
-                {
-                    name: "Medicinal Products",
-                    children: [
-                        { name: "Generic Name" },
-                        { name: "Brand Name" },
-                        {
-                            name: "Patient Details",
-                            children: [
-                                { name: "Report Id" },
-                                { name: "Sex" },
-                                { name: "Weight" },
-                                { name: "Age" },
-                                { name: "Dosage" },
-                                { name: "Start Date" },
-                                { name: "End Date" },
-                                { name: "Treatment Duration" }
-                            ]
-                        },
-                        { name: "Indications" },
-                        { name: "Reactions" },
-                        { name: "Outcomes" }
-                    ]
-                }
-            ]
-        };
-
-        const svg = d3.select("#data-structure-svg");
-
-        function setLabelWidth(node) {
-            const avgCharWidth = 7;
-            const padding = 15;
-
-            node.data.labelWidth = node.data.name.length * avgCharWidth + padding;
-
-            if (node.children) {
-                node.children.forEach(child => setLabelWidth(child));
+    const data = {
+        name: "Safety Report",
+        children: [
+            { name: "safetyreportversion" },
+            { name: "safetyreportid" },
+            { name: "primarysourcecountry" },
+            { name: "transmissiondateformat" },
+            { name: "transmissiondate" },
+            { name: "reporttype" },
+            { name: "serious" },
+            { name: "seriousnessdeath" },
+            { name: "seriousnesslifethreatening" },
+            { name: "seriousnesshospitalization" },
+            { name: "seriousnessdisabling" },
+            { name: "seriousnesscongenitalanomali" },
+            { name: "seriousnessother" },
+            { name: "receivedate" },
+            { name: "receiptdate" },
+            { name: "fulfillexpeditecriteria" },
+            { name: "authoritynumb" },
+            {
+                name: "primarysource",
+                children: [
+                    { name: "reportercountry" },
+                    { name: "qualification" }
+                ]
+            },
+            {
+                name: "sender",
+                children: [
+                    { name: "sendertype" },
+                    { name: "senderorganization" }
+                ]
+            },
+            {
+                name: "receiver",
+                children: [
+                    { name: "receivertype" },
+                    { name: "receiverorganization" }
+                ]
+            },
+            {
+                name: "patient",
+                children: [
+                    { name: "patientonsetage" },
+                    { name: "patientonsetageunit" },
+                    { name: "patientsex" },
+                    {
+                        name: "reaction",
+                        children: [
+                            { name: "reactionmeddraversionpt" },
+                            { name: "reactionmeddrapt" }
+                        ]
+                    },
+                    {
+                        name: "drug",
+                        children: [
+                            { name: "drugcharacterization" },
+                            { name: "medicinalproduct" },
+                            { name: "drugbatchnumb" },
+                            { name: "drugstructuredosagenumb" },
+                            { name: "drugstructuredosageunit" },
+                            { name: "drugseparatedosagenumb" },
+                            { name: "drugintervaldosageunitnumb" },
+                            { name: "drugintervaldosagedefinition" },
+                            { name: "drugdosagetext" },
+                            { name: "drugadministrationroute" },
+                            { name: "drugindication" },
+                            { name: "drugstartdateformat" },
+                            { name: "drugstartdate" },
+                            { name: "drugadditional" },
+                            {
+                                name: "activesubstance",
+                                children: [
+                                    { name: "activesubstancename" }
+                                ]
+                            },
+                            {
+                                name: "openfda",
+                                children: [
+                                    { name: "application_number" },
+                                    { name: "brand_name" },
+                                    { name: "generic_name" },
+                                    { name: "manufacturer_name" },
+                                    { name: "product_ndc" },
+                                    { name: "product_type" },
+                                    { name: "route" },
+                                    { name: "substance_name" },
+                                    { name: "rxcui" },
+                                    { name: "spl_id" },
+                                    { name: "spl_set_id" },
+                                    { name: "package_ndc" },
+                                    { name: "nui" },
+                                    { name: "pharm_class_epc" },
+                                    { name: "pharm_class_moa" },
+                                    { name: "unii" }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        name: "summary",
+                        children: [
+                            { name: "narrativeincludeclinical" }
+                        ]
+                    }
+                ]
             }
+        ]
+    };
+
+    const svg = d3.select("#data-structure-svg");
+
+    function setLabelWidth(node) {
+        const avgCharWidth = 9;
+        const padding = 5;
+        node.data.labelWidth = node.data.name.length * avgCharWidth + padding;
+        if (node.children) {
+            node.children.forEach(child => setLabelWidth(child));
         }
+    }
 
-        function renderTree() {
-            svg.selectAll("*").remove();
-
-            const boundingBox = svg.node().getBoundingClientRect();
-            const width = boundingBox.width;
-            const height = boundingBox.height;
-
-            const root = d3.hierarchy(data);
-
-            setLabelWidth(root);
-
-            const treeLayout = d3.tree()
-                .size([height, width - 160])
-                .separation(function(a, b) {
-                    return (a.parent === b.parent ? 1 : 1.5) / a.depth;
-                });
-
-            treeLayout(root);
-
-            const nodes = root.descendants();
-            const links = root.links();
-            const adjustedLinks = links.map(link => ({
-                source: { x: link.source.x, y: link.source.y + link.source.data.labelWidth },
-                target: { x: link.target.x, y: link.target.y }
-            }));
-
-            const g = svg.append("g")
-                .attr("transform", "translate(5,2)");
-            const linkGenerator = d3.linkHorizontal()
-                .x(d => d.y)
-                .y(d => d.x);
-
-            g.selectAll(".link")
-                .data(adjustedLinks)
-                .enter()
-                .append("path")
-                .attr("class", "link")
-                .attr("d", linkGenerator)
-                .attr("fill", "none")
-                .attr("stroke", "#555")
-                .attr("stroke-width", 1.5);
-
-            const nodeRadius = 4;
-            const fontSize = 10;
-
-            g.selectAll(".node")
-                .data(nodes)
-                .enter()
-                .append("circle")
-                .attr("class", "node")
-                .attr("cx", d => d.y)
-                .attr("cy", d => d.x)
-                .attr("r", nodeRadius)
-                .attr("fill", "#555")
-                .on("mouseover", function(event, d) {
-                    tooltip.transition().duration(200).style("opacity", 0.9);
-                    tooltip.html(d.data.name)
-                        .style("left", (event.pageX + 10) + "px")
-                        .style("top", (event.pageY - 28) + "px");
-                    d3.select(this).attr("fill", "#ff0");
-                })
-                .on("mouseout", function() {
-                    tooltip.transition().duration(500).style("opacity", 0);
-                    d3.select(this).attr("fill", "#555");
-                });
-
-            const labels = g.selectAll(".label")
-                .data(nodes)
-                .enter()
-                .append("g")
-                .attr("class", "label-group")
-                .attr("transform", d => `translate(${d.y}, ${d.x})`);
-
-            labels.each(function(d) {
-                const text = d.data.name;
-
-                const labelBox = d3.select(this).append("rect")
-                    .attr("class", "label-box")
-                    .attr("x", 0)
-                    .attr("y", -7)
-                    .attr("width", d.data.labelWidth)
-                    .attr("height", 14)
-                    .attr("rx", 4)
-                    .attr("ry", 4)
-                    .attr("fill", "white")
-                    .attr("stroke", "#ccc");
-
-                d3.select(this).append("circle")
-                    .attr("class", "node")
-                    .attr("cx", 0)
-                    .attr("cy", 0)
-                    .attr("r", nodeRadius)
-                    .attr("fill", "#555");
-
-                d3.select(this).append("text")
-                    .attr("class", "label-text")
-                    .attr("x", 5)
-                    .attr("y", 3.5)
-                    .attr("font-size", fontSize)
-                    .attr("fill", "#333")
-                    .text(text);
+    function renderTree() {
+        svg.selectAll("*").remove();
+        const boundingBox = svg.node().getBoundingClientRect();
+        const width = boundingBox.width;
+        const height = boundingBox.height;
+        const root = d3.hierarchy(data);
+        setLabelWidth(root);
+        const treeLayout = d3.cluster()
+            .size([height, width - 200])
+            .separation((a, b) => 2);
+        treeLayout(root);
+        const nodes = root.descendants();
+        const links = root.links();
+        const adjustedLinks = links.map(link => ({
+            source: { x: link.source.x, y: link.source.y + link.source.data.labelWidth },
+            target: { x: link.target.x, y: link.target.y }
+        }));
+        const g = svg.append("g")
+            .attr("transform", "translate(5,2)");
+        const linkGenerator = d3.linkHorizontal()
+            .x(d => d.y)
+            .y(d => d.x);
+        g.selectAll(".link")
+            .data(adjustedLinks)
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", linkGenerator)
+            .attr("fill", "none")
+            .attr("stroke", "#333")
+            .attr("stroke-width", 1.5);
+        const nodeRadius = 4;
+        const fontSize = 8;
+        g.selectAll(".node")
+            .data(nodes)
+            .enter()
+            .append("circle")
+            .attr("class", "node")
+            .attr("cx", d => d.y)
+            .attr("cy", d => d.x)
+            .attr("r", nodeRadius)
+            .attr("fill", "#333")
+            .on("mouseover", function(event, d) {
+                tooltip.transition().duration(200).style("opacity", 0.9);
+                tooltip.html(d.data.name)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+                d3.select(this).attr("fill", "#ff0");
+            })
+            .on("mouseout", function() {
+                tooltip.transition().duration(500).style("opacity", 0);
+                d3.select(this).attr("fill", "#555");
             });
-
-            g.selectAll(".label-group").selectAll(".label-box")
-                .lower();
-        }
-        renderTree();
-        window.addEventListener("resize", function() {
-            renderTree();
+        const labels = g.selectAll(".label")
+            .data(nodes)
+            .enter()
+            .append("g")
+            .attr("class", "label-group")
+            .attr("transform", d => `translate(${d.y}, ${d.x})`);
+        labels.each(function(d) {
+            const text = d.data.name;
+            d3.select(this).append("circle")
+                .attr("class", "node")
+                .attr("cx", 0)
+                .attr("cy", 0)
+                .attr("r", nodeRadius)
+                .attr("fill", "#333");
+            d3.select(this).append("text")
+                .attr("class", "label-text")
+                .attr("x", 5)
+                .attr("y", 3.5)
+                .attr("font-size", fontSize)
+                .attr("fill", "#333")
+                .text(text);
         });
+    }
+    renderTree();
+    window.addEventListener("resize", function() {
+        renderTree();
+    });
 });
