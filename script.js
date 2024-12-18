@@ -27,9 +27,19 @@ let weeklyReportCounts = [];
 let densitySvg;
 let timelineWidthGlobal = 0;
 
+let selectedCountryForFilter = null;
+
 let sankeyState = {
     expandedNode: null
 };
+
+let sankeyZoom = d3.zoom()
+  .filter(function(event) {
+    if (event.type === 'wheel') return false;
+    return true;
+  })
+  .on("zoom", (event) => {
+  });
 
 let sankeyPaginationState = {
     indications: {
@@ -60,11 +70,17 @@ const svg = d3.select("#treemap")
 const zoomGroup = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-const zoom = d3.zoom()
+    const zoom = d3.zoom()
+    .filter(function(event) { 
+        return true;
+    })
     .scaleExtent([0.5, 12])
     .on("zoom", (event) => {
         zoomGroup.attr("transform", event.transform);
     });
+
+d3.select("#treemap svg").call(zoom);
+
 
 svg.call(zoom);
 
@@ -73,13 +89,14 @@ const tooltip = d3.select("body").append("div")
     .style("opacity", 0);
 
 const outcomeColors = {
-    "Death": "#ff6a6a",
-    "Life-Threatening": "#ff8534",
-    "Disabling": "#ffb27f",
-    "Hospitalization": "#ffed92",
-    "Congenital Anomali": "#ffc0cb",
-    "Not Serious": "#b3ff55",
-    "Other": "#9ffff5"
+    "Death": "#ff9a9a",
+"Life-Threatening": "#ffb675",
+"Disabling": "#fff1aa",
+"Hospitalization": "#e1fa7b",
+"Congenital Anomali": "#d6a5c9",
+"Not Serious": "#beecb2",
+"Other": "#c7e4fd"
+
 };
 
 function createGradient(id, color) {
@@ -1040,7 +1057,7 @@ function drawTreemap(data) {
                 return 0;
             }
         })
-    .tile(d3.treemapBinary);
+        .tile(d3.treemapBinary);
     treemap(root);
 
     const countries = zoomGroup.selectAll(".country")
@@ -1056,10 +1073,25 @@ function drawTreemap(data) {
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
         .attr("stroke-width", 0.2)
-        .append("title")
-        .text(function(d) { return d.data.key; })
+        .style("cursor","pointer")
         .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
-        .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); });
+        .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); })
+        .on("click", function(event, d) {
+            if (selectedCountryForFilter === d.data.key) {
+                selectedCountryForFilter = null;
+                const selectedReports = parseInt(reportSlider.value, 10);
+                const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
+                drawTreemap(filteredData);
+            } else {
+                selectedCountryForFilter = d.data.key;
+                const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
+                const selectedReports = parseInt(reportSlider.value, 10);
+                const grouped = groupDataByCountryAndProduct(filteredData.slice(0, selectedReports));
+                drawTreemap(grouped);
+            }
+        })
+        .append("title")
+        .text(function(d) { return d.data.key; });
 
     countries.append("text")
         .attr("x", function(d) {
@@ -1088,6 +1120,21 @@ function drawTreemap(data) {
             return fontSize + "px";
         })
         .attr("text-anchor", "middle")
+        .style("cursor","pointer")
+        .on("click", function(event, d) {
+            if (selectedCountryForFilter === d.data.key) {
+                selectedCountryForFilter = null;
+                const selectedReports = parseInt(reportSlider.value, 10);
+                const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
+                drawTreemap(filteredData);
+            } else {
+                selectedCountryForFilter = d.data.key;
+                const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
+                const selectedReports = parseInt(reportSlider.value, 10);
+                const grouped = groupDataByCountryAndProduct(filteredData.slice(0, selectedReports));
+                drawTreemap(grouped);
+            }
+        })
         .append("title")
         .text(function(d) { return d.data.key; });
 
@@ -1121,7 +1168,8 @@ function drawTreemap(data) {
         .attr("height", d => Math.floor(d.y1 - d.y0))
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
-        .attr("stroke-width", 0);
+        .attr("stroke-width", 0)
+        .style("cursor","pointer");
 
     products.each(function(d) {
         const productG = d3.select(this);
@@ -1141,6 +1189,7 @@ function drawTreemap(data) {
                     .attr("fill", outcomeColors[report.Outcome] || "#ccc")
                     .attr("stroke", outcomeColors[report.Outcome] || "#ccc")
                     .attr("stroke-width", 2)
+                    .style("cursor","pointer")
                     .on("mouseover", function (event) {
                         tooltip.transition()
                             .duration(200)
@@ -1178,6 +1227,7 @@ function drawTreemap(data) {
                             .attr("cy", nextY)
                             .attr("r", dotSize)
                             .style("fill", color)
+                            .style("cursor","pointer")
                             .on("mouseover", (event) => {
                                 tooltip.transition()
                                     .duration(200)
@@ -1201,6 +1251,7 @@ function drawTreemap(data) {
         placeDotsRadially(Array.from(allBrandNames), "blue");
     });
 }
+
 
 function drawLegend() {
     d3.select("#legend-container").selectAll("*").remove();
@@ -1289,16 +1340,19 @@ function showProductInfo(productData) {
     d3.select("#sankey-container").html("");
 
     let reportsToUse;
+
     if (isCountryFilterActive) {
-        const targetProductName = productData.key.trim().toLowerCase();
-        reportsToUse = originalData.filter(
-            report => report.Medicinalproduct.trim().toLowerCase() === targetProductName
-        );
-        countryFilterMessage.textContent = 'Showing reports all over the world';
-    } else {
         reportsToUse = productData.reports;
         countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
-    }         
+        toggleCountryFilterBtn.textContent = 'See Global Data';
+    } else {
+        const targetProductName = productData.key.trim().toLowerCase();
+        reportsToUse = originalData.filter(report =>
+            report.Medicinalproduct.trim().toLowerCase() === targetProductName
+        );
+        countryFilterMessage.textContent = 'Showing reports all over the world';
+        toggleCountryFilterBtn.textContent = 'See Country Specific';
+    }
 
     window.currentReportsToUse = reportsToUse;
 
@@ -1345,13 +1399,14 @@ function showProductInfo(productData) {
             originalValue: reactionCounts[name],
         })),
     ];
+
     const productNode = nodes.find(n => n.type === 'product');
     productNode.indicationCount = allIndications.length;
     productNode.reactionCount = allReactions.length;
 
-
     drawSankeyDiagram(nodes, links);
 }
+
 
 const internalMargin = { left: 10, right: 100 };
 
@@ -1382,101 +1437,72 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function drawSankeyGraph(graph) {
         sankeySvg.selectAll("*").remove();
-    
         const idToNode = new Map(graph.nodes.map(d => [d.id, d]));
-    
         graph.links.forEach(link => {
             link.source = idToNode.get(link.source.id || link.source);
             link.target = idToNode.get(link.target.id || link.target);
         });
-    
         assignNodeLayers(graph.nodes);
         adjustLayers(graph.nodes, sankeyWidth);
-    
         const nodeWidth = 20;
         const minNodeHeight = 20;
         const maxNodeHeight = 800;
         const nodePadding = 15;
-    
         const numberOfNodes = graph.nodes.length;
-    
         let sankeyHeight = numberOfNodes * (minNodeHeight + nodePadding) + 80;
-    
         const sankey = d3.sankey()
             .nodeWidth(nodeWidth)
             .nodePadding(nodePadding)
             .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 1]])
             .nodeAlign(d3.sankeyCenter)
             .nodeSort(null);
-    
         sankey(graph);
-
-    if (isToggled) {
-        const sankeyZoom = d3.zoom()
-            .scaleExtent([0.5, 5])
-            .on("zoom", (event) => {
-                diagramGroup.attr("transform", event.transform);
-            });
-        d3.select("#sankey-container svg").call(sankeyZoom);
-    }
-    
         let nodeHeights = graph.nodes.map(d => d.y1 - d.y0);
         let minActualNodeHeight = d3.min(nodeHeights);
         let maxActualNodeHeight = d3.max(nodeHeights);
-    
         let valueScalingFactor = 1;
-    
         if (minActualNodeHeight < minNodeHeight) {
             const minHeightScalingFactor = minNodeHeight / minActualNodeHeight;
             valueScalingFactor = Math.max(valueScalingFactor, minHeightScalingFactor);
         }
-    
         if (maxActualNodeHeight > maxNodeHeight) {
             const maxHeightScalingFactor = maxNodeHeight / maxActualNodeHeight;
             valueScalingFactor = Math.min(valueScalingFactor, maxHeightScalingFactor);
         }
-    
         if (valueScalingFactor !== 1) {
-            graph.links.forEach(link => {
-                link.value *= valueScalingFactor;
-            });
-            graph.nodes.forEach(node => {
-                node.value = 0;
-            });
+            graph.links.forEach(link => { link.value *= valueScalingFactor; });
+            graph.nodes.forEach(node => { node.value = 0; });
             graph.links.forEach(link => {
                 link.source.value += link.value;
                 link.target.value += link.value;
             });
-        
             sankey(graph);
             nodeHeights = graph.nodes.map(d => d.y1 - d.y0);
             minActualNodeHeight = d3.min(nodeHeights);
             maxActualNodeHeight = d3.max(nodeHeights);
         }
-    
         if (minActualNodeHeight < minNodeHeight) {
             const heightScalingFactor = minNodeHeight / minActualNodeHeight;
             sankeyHeight *= heightScalingFactor;
             sankey.extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 1]]);
             sankey(graph);
         }
-        sankeySvg
-            .attr("height", sankeyHeight);
-    
-            const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
-            const translateX = (sankeyWidth - diagramWidth) / 2;
-        
-            const diagramGroup = sankeySvg.append("g")
-                .attr("transform", `translate(${translateX},0)`);
-        
-            drawSankeyElements(diagramGroup, graph);
+        sankeySvg.attr("height", sankeyHeight);
+        const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
+        const diagramGroup = sankeySvg.append("g")
+            .attr("transform", `translate(${(sankeyWidth - (d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0))) / 2},0)`);
+        drawSankeyElements(diagramGroup, graph);
+        drawSankeyElements(diagramGroup, graph);
         if (isToggled) {
             diagramGroup.attr("transform", diagramGroup.attr("transform") + " scale(0.5)");
+            sankeyZoom.scaleExtent([0.5, 0.5]);
         } else {
-            diagramGroup.attr("transform", diagramGroup.attr("transform").replace(" scale(0.5)", ""));
-        }        
-
-    }
+            const currentTransform = diagramGroup.attr("transform");
+            diagramGroup.attr("transform", currentTransform.replace(" scale(0.5)", ""));
+            sankeyZoom.scaleExtent([0.5, 12]);
+        }
+        d3.select("#sankey-container svg").call(sankeyZoom);
+    }    
     
     
     function assignNodeLayers(nodes) {
@@ -1865,17 +1891,29 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function getReportsByNode(nodeData) {
         const nodeName = nodeData.name.trim().toLowerCase();
-        return window.currentReportsToUse.filter(report => {
-            if (nodeData.type === 'indication') {
+        let datasetToSearch;
+    
+        if (isCountryFilterActive) {
+            datasetToSearch = window.currentReportsToUse;
+        } else {
+            datasetToSearch = originalData;
+        }
+    
+        if (nodeData.type === 'indication') {
+            return datasetToSearch.filter(report => {
                 const indications = splitBySemicolon(report.DrugIndication).map(s => s.trim().toLowerCase());
                 return indications.includes(nodeName);
-            } else if (nodeData.type === 'reaction') {
+            });
+        } else if (nodeData.type === 'reaction') {
+            return datasetToSearch.filter(report => {
                 const reactions = splitBySemicolon(report.Reactions).map(s => s.trim().toLowerCase());
                 return reactions.includes(nodeName);
-            }
-            return false;
-        });
-    }       
+            });
+        }
+    
+        return [];
+    }
+          
 
     function capitalize(str) {
         if (typeof str !== 'string') return '';

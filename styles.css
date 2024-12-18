@@ -49,7 +49,11 @@ h4 {
     border: 1px solid #e3e2e2;
     padding: 15px 20px;
     border-radius: 8px;
-    box-shadow: 12px 12px 12px rgba(17, 255, 0, 0.1);
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     font-size: 18px;
     color: #333;
     max-width: 450px;
@@ -65,7 +69,11 @@ h4 {
     border: 1px solid #ccc;
     padding: 10px 20px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     font-size: 14px;
     color: #333;
     cursor: pointer;
@@ -87,7 +95,11 @@ h4 {
     border: 1px solid #ccc;
     padding: 10px;
     border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     font-size: 11px;
     color: #333;
     width: 600px;
@@ -140,6 +152,7 @@ h4 {
     width: 90vw;
     height: 80vh;
     margin-left: 5px;
+    
 }
 
 #info-panel {
@@ -312,8 +325,9 @@ h4 {
 }
 
 .legend circle, .legend rect {
-    stroke: #000;
+    stroke: #0000003a;
     stroke-width: 1px;
+    
 }
 
 .legend text {
@@ -372,6 +386,11 @@ h4 {
     background: linear-gradient(to right, #d5d5d5, #7a7a54, #62ab5d, #5c9596, #589b90);
     outline: none;
     -webkit-appearance: none;
+    box-shadow: 
+        2px 2px 2px rgba(0, 0, 0, 0.1),
+        -2px -2px 2px rgba(0, 0, 0, 0.1),
+        2px -2px 2px rgba(0, 0, 0, 0.1),
+        -2px 2px 2px rgba(0, 0, 0, 0.1);
     appearance: none;
 }
 
@@ -382,6 +401,11 @@ h4 {
     border: none;
     border-radius: 50%;
     cursor: pointer;
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     -webkit-appearance: none;
     appearance: none;
 }
@@ -432,7 +456,7 @@ h4 {
     background-color: #ff7272;
     border: 2px solid #000000;
     cursor: pointer;
-    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
     z-index: 3;
     transition: left 0.2s ease;
 }
@@ -602,7 +626,11 @@ h4 {
     border: 1px solid #ccc;
     padding: 10px 20px;
     border-radius: 8px;
-    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     font-size: 14px;
     color: #333;
     cursor: pointer;
@@ -622,9 +650,16 @@ h4 {
 .toggled-view #sankey-container {
     float: right;
     width: calc(50% - 15px);
-    margin-top: -82vh;
+    margin-top: -85vh;
     margin-right: 1px;
+    margin-left: 100px;
+    cursor: move;
     margin-bottom: 10px;
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     overflow: auto;
 }
 
@@ -638,7 +673,7 @@ h4 {
 .toggled-view #navigation-instructions {
     position: relative;
     right: 10px;
-    top: 75px;
+    top: 175px;
 }
 
 #country-filter-container {
@@ -651,7 +686,11 @@ h4 {
     border: 1px solid #ccc;
     padding: 8px 16px;
     border-radius: 5px;
-    box-shadow: 4px 4px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 
+        4px 4px 4px rgba(0, 0, 0, 0.1),
+        -4px -4px 4px rgba(0, 0, 0, 0.1),
+        4px -4px 4px rgba(0, 0, 0, 0.1),
+        -4px 4px 4px rgba(0, 0, 0, 0.1);
     cursor: pointer;
 }
 
@@ -663,7 +702,7 @@ h4 {
 .toggled-view #country-filter-container {
     float: right;
     width: calc(50% - 15px);
-    margin-top: -94vh;
+    margin-top: -96vh;
     right: 0px;
     margin-bottom: 10px;
     clear: both;
@@ -677,5 +716,5 @@ h4 {
 }
 
 .faded {
-    opacity: 0.4;
+    opacity: 0.5;
 }
