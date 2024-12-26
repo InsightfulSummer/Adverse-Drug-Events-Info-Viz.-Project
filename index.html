@@ -10,19 +10,23 @@
 </head>
 <body>
     <div id="content-container">
-        <h1>Adverse Drug Events</h1>
-        <h2>Western University</h2>
-        <h3>Dr. Kamran Sedig</h3>
-        <h4>Sanyam Jain</h4>
+        <h1>ADVENTIST</h1>
+        <h2>(Adverse Event Reporting Interactive Visualization)</h2>
 
-        <div class="info-box">
-            This webpage is designed to visualize adverse drug events using data from the FDA, demonstrating how this information can be effectively represented. The primary goal is to showcase how visualizing such data can provide insights at a glance, highlighting key patterns and trends in reports. Additionally, it emphasizes the importance of proper data collection techniques to ensure accuracy and reliability in analysis.
-        </div>
-
+        <svg id="circular-slider"></svg>
+            <div id="filter-values">
+                <p><span id="age-value-display"></span></p>
+                <p><span id="weight-value-display"></span></p>
+                <p><span id="sex-value-display"></span></p>
+            </div>
 
         <div id="slider-container">
             <p id="report-count">1000 reports</p>
             <input type="range" id="report-slider" min="0" max="1000" value="0" step="100">
+        </div>
+
+        <div id="timeline-container">
+            <div id="timeline-bar"></div>
         </div>
 
         <button id="toggle-structure-btn" class="toggle-structure-button">
@@ -30,7 +34,7 @@
         </button>
 
         <button id="toggle-view-btn" class="toggle-view-button">
-            Toggle View
+            Change View
         </button>
 
         <div class="structure-box" id="structure-box">
@@ -38,27 +42,9 @@
             <svg id="data-structure-svg"></svg>
         </div>
 
-        <div id="filter-container">
-            <svg id="circular-slider"></svg>
-            <div id="filter-values">
-                <p><span id="age-value-display"></span></p>
-                <p><span id="weight-value-display"></span></p>
-                <p><span id="sex-value-display"></span></p>
-            </div>
-        </div>
-
-        <div id="navigation-instructions">
-            <p>Scroll to Zoom</p>
-            <p>Drag to Move</p>
-        </div>
-
-        <div id="timeline-container">
-            <div id="timeline-bar"></div>
-        </div>
-
         <div id="search-container">
             <input type="text" id="search-bar" placeholder="Search...">
-            <span class="info-icon" aria-labelledby="tooltip-id" tabindex="0" aria-label="Search Information" data-tooltip="Search for Countries, Medicinal Products, Generic names, Brand names, Reactions or Indications!">i</span>
+            <span class="info-icon" aria-labelledby="tooltip-id" tabindex="0" aria-label="Search Information" data-tooltip="Search for Countries, Medicinal Products, Brand names, Reactions or Indications!">i</span>
             <div id="search-dropdown" class="dropdown-content" style="display: none;"></div>
             <div id="search-results"></div>
         </div>
@@ -67,8 +53,8 @@
             <div id="legend-container"></div>
             <div id="treemap"></div>
             <div id="country-filter-container">
-                <button id="toggle-country-filter-btn">See Global Data</button>
-                <div id="country-filter-message">Showing reports all over the world</div>
+                <button id="toggle-country-filter-btn">Global Data</button>
+                <div id="country-filter-message"></div>
             </div>
             <div id="sankey-container"></div>
         </div>

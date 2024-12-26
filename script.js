@@ -89,14 +89,13 @@ const tooltip = d3.select("body").append("div")
     .style("opacity", 0);
 
 const outcomeColors = {
-    "Death": "#ff9a9a",
-"Life-Threatening": "#ffb675",
-"Disabling": "#fff1aa",
-"Hospitalization": "#e1fa7b",
-"Congenital Anomali": "#d6a5c9",
-"Not Serious": "#beecb2",
-"Other": "#c7e4fd"
-
+    "Death": "#ff8c8c",
+    "Life-Threatening": "#ffb675",
+    "Disabling": "#fff1aa",
+    "Hospitalization": "#e1fa7b",
+    "Congenital Anomali": "#d6a5c9",
+    "Not Serious": "#beecb2",
+    "Other": "#c7e4fd"
 };
 
 function createGradient(id, color) {
@@ -137,185 +136,360 @@ let circularFilters = {
     Weight: { min: 1, max: 200 },
     Age: { min: 1, max: 100 },
     Sex: { male: true, female: true }
-};
-
-const gap = 2 * Math.PI / 180;
-
-const segments = [
-  {
-    name: 'Weight',
-    startAngle: 0 + gap,
-    endAngle: Math.PI - gap,
-    color: '#7a7a54',
-    range: [1, 200]
-  },
-  {
-    name: 'Age',
-    startAngle: Math.PI + gap,
-    endAngle: (2 * Math.PI) - gap,
-    color: '#62ab5d',
-    range: [1, 100]
-  }
-]; 
-
-const circularSliderSVG = d3.select("#circular-slider")
+  };
+  
+  const gap = 2 * Math.PI / 180;
+  const extraGap = 0.05;
+  
+  const segments = [
+    {
+      name: 'Weight',
+      startAngle: (0 + gap) + extraGap,
+      endAngle: (Math.PI - gap) - extraGap,
+      color: '#8D8B45',
+      range: [1, 200]
+    },
+    {
+      name: 'Age',
+      startAngle: (Math.PI + gap) + extraGap,
+      endAngle: ((2 * Math.PI) - gap) - extraGap,
+      color: '#5AAE5D',
+      range: [1, 100]
+    }
+  ];
+  
+  const circularSliderSVG = d3.select("#circular-slider")
     .attr("width", 300)
     .attr("height", 300)
     .attr("viewBox", "0 0 300 300")
     .attr("preserveAspectRatio", "xMidYMid meet")
     .append("g")
-    .attr("transform", `translate(88, 120)`);
-
-circularSliderSVG.append("text")
+    .attr("transform", `translate(88, 130)`);
+  
+  circularSliderSVG.append("text")
     .attr("class", "age-text")
     .attr("x", 0)
-    .attr("y", -15)
+    .attr("y", -35)
     .attr("text-anchor", "middle")
     .attr("alignment-baseline", "middle")
     .attr("font-size", "12px")
-    .attr("fill", "#000")
+    .attr("font-weight", "600")
+    .attr("fill", "#333")
     .text("");
-
-circularSliderSVG.append("text")
+  
+  circularSliderSVG.append("text")
     .attr("class", "weight-text")
     .attr("x", 0)
-    .attr("y", 0)
+    .attr("y", 35)
     .attr("text-anchor", "middle")
     .attr("alignment-baseline", "middle")
     .attr("font-size", "12px")
-    .attr("fill", "#000")
+    .attr("font-weight", "600")
+    .attr("fill", "#333")
     .text("");
-
-circularSliderSVG.append("text")
-    .attr("class", "sex-text")
-    .attr("x", 0)
-    .attr("y", 15)
-    .attr("text-anchor", "middle")
-    .attr("alignment-baseline", "middle")
-    .attr("font-size", "12px")
-    .attr("fill", "#000")
-    .text("");
-
-const sliderRadius = 65;
-const sliderThickness = 20;
-const minHandleDistance = 5;
-
-function createSegmentGradient(id, color) {
+  
+  const sliderRadius = 65;
+  const sliderThickness = 20;
+  const minHandleDistance = 5;
+  
+  function createSegmentGradient(id, color) {
     const defs = circularSliderSVG.append("defs");
-    const gradient = defs.append("linearGradient")
-        .attr("id", id)
-        .attr("x1", "0%")
-        .attr("y1", "0%")
-        .attr("x2", "100%")
-        .attr("y2", "0%");
-
+    const gradient = defs.append("radialGradient")
+      .attr("id", id)
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
+  
     gradient.append("stop")
-        .attr("offset", "0%")
-        .attr("stop-color", d3.color(color).brighter(1));
-
+      .attr("offset", "0%")
+      .attr("stop-color", d3.color(color).brighter(0.8));
+  
     gradient.append("stop")
-        .attr("offset", "100%")
-        .attr("stop-color", d3.color(color).darker(1));
-}
-
-segments.forEach(segment => {
+      .attr("offset", "100%")
+      .attr("stop-color", d3.color(color).darker(0.8));
+  }
+  
+  segments.forEach(segment => {
     const gradientId = `gradient-${segment.name}`;
     createSegmentGradient(gradientId, segment.color);
+  
     circularSliderSVG.append("path")
-        .attr("class", "circular-slider-track")
-        .attr("d", d3.arc()
-            .innerRadius(sliderRadius)
-            .outerRadius(sliderRadius + sliderThickness)
-            .startAngle(segment.startAngle-55)
-            .endAngle(segment.endAngle-55)()
-        )
-        .attr("fill", `url(#${gradientId})`);
-
-        segment.selectionArc = circularSliderSVG.append("path")
-        .attr("class", "circular-slider-selection")
-        .attr("fill", `url(#gradient-${segment.name})`);
-        updateSelectionArc(segment);
-});
-
-segments.forEach(segment => {
+      .attr("class", "circular-slider-track")
+      .attr("d", d3.arc()
+        .innerRadius(sliderRadius)
+        .outerRadius(sliderRadius + sliderThickness)
+        .startAngle(segment.startAngle - 55)
+        .endAngle(segment.endAngle - 55)()
+      )
+      .attr("fill", `url(#${gradientId})`)
+      .attr("stroke", "#ccc")
+      .attr("stroke-width", 0.3)
+      .style("cursor", "pointer")
+      .on("mouseover", function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke-width", 1)
+          .attr("stroke", "#888");
+      })
+      .on("mouseout", function() {
+        d3.select(this)
+          .transition()
+          .duration(200)
+          .attr("stroke-width", 0.3)
+          .attr("stroke", "#ccc");
+      });
+  
+    segment.selectionArc = circularSliderSVG.append("path")
+      .attr("class", "circular-slider-selection")
+      .attr("fill", `url(#gradient-${segment.name})`)
+      .style("opacity", 0.9);
+    updateSelectionArc(segment);
+  });
+  
+  segments.forEach(segment => {
     addHandle(segment, 'min');
     addHandle(segment, 'max');
-});
+  });
+  
+  function addHandle(segment, type) {
+    const initialValue = type === 'min'
+      ? segment.range[0]
+      : segment.range[1];
+  
+    const angle = scaleValueToAngle(initialValue, segment);
+
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
+  
+    const handle = circularSliderSVG.append("circle")
+      .attr("class", `circular-slider-handle ${segment.name.toLowerCase()}-${type}`)
+      .attr("r", 9)
+      .attr("cx", x)
+      .attr("cy", y)
+      .attr("fill", "#f0f0f0")
+      .attr("stroke", d3.color(segment.color).darker(1.5))
+      .attr("stroke-width", 2)
+      .style("cursor", "grab")
+      .on("mouseover", function() {
+        d3.select(this)
+          .transition()
+          .duration(150)
+          .attr("fill", "#fff")
+          .attr("r", 12);
+      })
+      .on("mouseout", function() {
+        d3.select(this)
+          .transition()
+          .duration(150)
+          .attr("fill", "#f0f0f0")
+          .attr("r", 9);
+      })
+      .call(d3.drag()
+        .on("start", function() {
+          d3.select(this).style("cursor", "grabbing");
+        })
+        .on("drag", function(event) {
+          handleDrag(event, segment, type, this);
+        })
+        .on("end", function() {
+          d3.select(this).style("cursor", "grab");
+        })
+      );
+  
+    handle.append("title").text(
+      type === 'min'
+        ? `${segment.name} Min`
+        : `${segment.name} Max`
+    );
+  }
+  
+  function scaleValueToAngle(value, segment) {
+    const ratio = (value - segment.range[0]) / (segment.range[1] - segment.range[0]);
+    return segment.startAngle + ratio * (segment.endAngle - segment.startAngle);
+  }
+  
+  function angleToValue(angle, segment) {
+    const ratio = (angle - segment.startAngle) / (segment.endAngle - segment.startAngle);
+    return Math.round(ratio * (segment.range[1] - segment.range[0]) + segment.range[0]);
+  }
+  
+  function handleDrag(event, segment, type, handle) {
+    const mouse = d3.pointer(event, circularSliderSVG.node());
+    let angle = Math.atan2(mouse[1], mouse[0]);
+  
+    if (angle < 0) angle += 2 * Math.PI;
+    if (angle < segment.startAngle) angle = segment.startAngle;
+    if (angle > segment.endAngle) angle = segment.endAngle;
+  
+    const newValue = angleToValue(angle, segment);
+  
+    if (type === 'min') {
+      circularFilters[segment.name].min = Math.min(
+        newValue,
+        circularFilters[segment.name].max - minHandleDistance
+      );
+    } else {
+      circularFilters[segment.name].max = Math.max(
+        newValue,
+        circularFilters[segment.name].min + minHandleDistance
+      );
+    }
+  
+    updateHandlePosition(handle, segment, type);
+    updateSelectionArc(segment);
+    updateFilterDisplays();
+    updateTreemap();
+  }
+  
+  function updateHandlePosition(handle, segment, type) {
+    const value = circularFilters[segment.name][type];
+    const angle = scaleValueToAngle(value, segment);
+    const x = sliderRadius * Math.cos(angle);
+    const y = sliderRadius * Math.sin(angle);
+  
+    d3.select(handle)
+      .attr("cx", x)
+      .attr("cy", y);
+  }
+  
+  function updateSelectionArc(segment) {
+    const startVal = circularFilters[segment.name].min;
+    const endVal = circularFilters[segment.name].max;
+  
+    const startAngle = scaleValueToAngle(startVal, segment);
+    const endAngle = scaleValueToAngle(endVal, segment);
+  
+    segment.selectionArc
+      .attr("d", d3.arc()
+        .innerRadius(sliderRadius)
+        .outerRadius(sliderRadius + sliderThickness)
+        .startAngle(startAngle - 55)
+        .endAngle(endAngle - 55)()
+      );
+  }
+  
+  function updateFilterDisplays() {
+    d3.select(".age-text")
+      .text(`${circularFilters.Age.min} - ${circularFilters.Age.max} yrs`);
+  
+    d3.select(".weight-text")
+      .text(`${circularFilters.Weight.min} - ${circularFilters.Weight.max} kg`);
+  }  
 
 circularFilters.Sex.male = true;
 circularFilters.Sex.female = true;
 
 const maleButtonGroup = circularSliderSVG.append("g")
-    .attr("class", "male-button-group")
-    .attr("transform", `translate(0, 25)`);
+  .attr("class", "male-button-group")
+  .attr("transform", `translate(0, 25)`);
 
-maleButtonGroup.append("rect")
-    .attr("x", -50)
-    .attr("y", -12)
-    .attr("width", 40)
-    .attr("height", 20)
-    .attr("rx", 4)
-    .attr("ry", 4)
-    .attr("fill", "#d1d1ff")
-    .attr("stroke", "#000")
-    .style("cursor", "pointer")
-    .on("click", function() {
-        circularFilters.Sex.male = !circularFilters.Sex.male;
-        updateSexButtons();
-        updateTreemap();
-    });
+const maleRect = maleButtonGroup.append("rect")
+  .attr("x", -54)
+  .attr("y", -32)
+  .attr("width", 50)
+  .attr("height", 26)
+  .attr("rx", 13)
+  .attr("ry", 13)
+  .attr("fill", circularFilters.Sex.male ? "#8FCFFF" : "#fff")
+  .attr("stroke", circularFilters.Sex.male ? "#64A8E3" : "#ccc") 
+  .attr("stroke-width", 2)
+  .style("cursor", "pointer")
+  .on("click", function() {
+    circularFilters.Sex.male = !circularFilters.Sex.male;
+    updateSexButtons();
+    updateTreemap();
+  })
+  .on("mouseover", function() {
+    d3.select(this)
+      .transition()
+      .duration(150)
+      .attr("fill", circularFilters.Sex.male ? "#76B8FF" : "#f7f7f7");
+  })
+  .on("mouseout", function() {
+    d3.select(this)
+      .transition()
+      .duration(150)
+      .attr("fill", circularFilters.Sex.male ? "#8FCFFF" : "#fff");
+  });
 
 maleButtonGroup.append("text")
-    .attr("x", -30)
-    .attr("y", 3)
-    .attr("text-anchor", "middle")
-    .attr("font-size", "10px")
-    .style("cursor", "pointer")
-    .text("MALE")
-    .on("click", function() {
-        circularFilters.Sex.male = !circularFilters.Sex.male;
-        updateSexButtons();
-        updateTreemap();
-    });
+  .attr("x", -29)
+  .attr("y", -16)
+  .attr("font-size", "10px")
+  .attr("font-weight", 550)
+  .attr("text-anchor", "middle")
+  .attr("fill", "#333")
+  .style("cursor", "pointer")
+  .text("MALE")
+  .on("click", function() {
+    circularFilters.Sex.male = !circularFilters.Sex.male;
+    updateSexButtons();
+    updateTreemap();
+  });
 
 const femaleButtonGroup = circularSliderSVG.append("g")
-    .attr("class", "female-button-group")
-    .attr("transform", `translate(50, 25)`);
+  .attr("class", "female-button-group")
+  .attr("transform", `translate(60, 25)`);
 
-femaleButtonGroup.append("rect")
-    .attr("x", -50)
-    .attr("y", -12)
-    .attr("width", 50)
-    .attr("height", 20)
-    .attr("rx", 4)
-    .attr("ry", 4)
-    .attr("fill", "#ffd1d1")
-    .attr("stroke", "#000")
-    .style("cursor", "pointer")
-    .on("click", function() {
-        circularFilters.Sex.female = !circularFilters.Sex.female;
-        updateSexButtons();
-        updateTreemap();
-    });
+const femaleRect = femaleButtonGroup.append("rect")
+  .attr("x", -59)
+  .attr("y", -32)
+  .attr("width", 55)
+  .attr("height", 26)
+  .attr("rx", 13)
+  .attr("ry", 13)
+  .attr("fill", circularFilters.Sex.female ? "#FFB6C1" : "#fff")
+  .attr("stroke", circularFilters.Sex.female ? "#FF889A" : "#ccc")
+  .attr("stroke-width", 2)
+  .style("cursor", "pointer")
+  .on("click", function() {
+    circularFilters.Sex.female = !circularFilters.Sex.female;
+    updateSexButtons();
+    updateTreemap();
+  })
+  .on("mouseover", function() {
+    d3.select(this)
+      .transition()
+      .duration(150)
+      .attr("fill", circularFilters.Sex.female ? "#FFA7B4" : "#f7f7f7");
+  })
+  .on("mouseout", function() {
+    d3.select(this)
+      .transition()
+      .duration(150)
+      .attr("fill", circularFilters.Sex.female ? "#FFB6C1" : "#fff");
+  });
 
 femaleButtonGroup.append("text")
-    .attr("x", -25)
-    .attr("y", 3)
-    .attr("text-anchor", "middle")
-    .attr("font-size", "10px")
-    .style("cursor", "pointer")
-    .text("FEMALE")
-    .on("click", function() {
-        circularFilters.Sex.female = !circularFilters.Sex.female;
-        updateSexButtons();
-        updateTreemap();
-    });
+  .attr("x", -32)
+  .attr("y", -16)
+  .attr("font-size", "10px")
+  .attr("font-weight", 550)
+  .attr("text-anchor", "middle")
+  .attr("fill", "#333")
+  .style("cursor", "pointer")
+  .text("FEMALE")
+  .on("click", function() {
+    circularFilters.Sex.female = !circularFilters.Sex.female;
+    updateSexButtons();
+    updateTreemap();
+  });
 
 function updateSexButtons() {
-    maleButtonGroup.select("rect").attr("fill", circularFilters.Sex.male ? "#d1d1ff" : "#fff");
-    femaleButtonGroup.select("rect").attr("fill", circularFilters.Sex.female ? "#ffd1d1" : "#fff");
-}
+  maleRect
+    .transition()
+    .duration(150)
+    .attr("fill", circularFilters.Sex.male ? "#8FCFFF" : "#fff")
+    .attr("stroke", circularFilters.Sex.male ? "#64A8E3" : "#ccc");
 
+  femaleRect
+    .transition()
+    .duration(150)
+    .attr("fill", circularFilters.Sex.female ? "#FFB6C1" : "#fff")
+    .attr("stroke", circularFilters.Sex.female ? "#FF889A" : "#ccc");
+}
 
 function addHandle(segment, type) {
     const initialValue = type === 'min' ? segment.range[0] : segment.range[1];
@@ -595,16 +769,23 @@ d3.csv("data.csv", function (d, i) {
     window.totalIndicationCounts = indicationCounts;
 
     const reactionMaxCount = d3.max(Object.values(window.totalReactionCounts)) || 1;
-    const indicationMaxCount = d3.max(Object.values(window.totalIndicationCounts)) || 1;
+const indicationMaxCount = d3.max(Object.values(window.totalIndicationCounts)) || 1;
+
+    const maxAllowed = 200;
+
+    const cappedReactionMax = Math.min(reactionMaxCount, maxAllowed);
+    const cappedIndicationMax = Math.min(indicationMaxCount, maxAllowed);
 
     reactionColorScale = d3.scaleLinear()
-        .domain([0, reactionMaxCount / 2, reactionMaxCount])
-        .range(["#ffcccc", "#ff0000", "#8B0000"])
+        .domain([0, cappedReactionMax / 2, cappedReactionMax])
+        .range(["#f9dede", "#ff9d9d", "#ff7d7d"])
+        .clamp(true)
         .interpolate(d3.interpolateHcl);
 
     indicationColorScale = d3.scaleLinear()
-        .domain([0, indicationMaxCount / 2, indicationMaxCount])
-        .range(["#ccffcc", "#00cc00", "#006400"])
+        .domain([0, cappedIndicationMax / 2, cappedIndicationMax])
+        .range(["#d3edd3", "#92c792", "#64c864"])
+        .clamp(true)
         .interpolate(d3.interpolateHcl);
 
         document.getElementById('search-bar').addEventListener('input', function () {
@@ -1343,15 +1524,15 @@ function showProductInfo(productData) {
 
     if (isCountryFilterActive) {
         reportsToUse = productData.reports;
-        countryFilterMessage.textContent = `Showing reports for ${currentCountry}`;
-        toggleCountryFilterBtn.textContent = 'See Global Data';
+        countryFilterMessage.textContent = `${currentCountry}`;
+        toggleCountryFilterBtn.textContent = 'Global Data';
     } else {
         const targetProductName = productData.key.trim().toLowerCase();
         reportsToUse = originalData.filter(report =>
             report.Medicinalproduct.trim().toLowerCase() === targetProductName
         );
-        countryFilterMessage.textContent = 'Showing reports all over the world';
-        toggleCountryFilterBtn.textContent = 'See Country Specific';
+        countryFilterMessage.textContent = '';
+        toggleCountryFilterBtn.textContent = 'Country Specific';
     }
 
     window.currentReportsToUse = reportsToUse;
@@ -1625,18 +1806,6 @@ function drawSankeyDiagram(nodesData, linksData) {
 
     function drawSankeyElements(diagramGroup, graph) {
         const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
-    const maxReportCount = d3.max(graph.links, d => d.value) || 1;
-    
-
-    const indicationColorScale = d3.scaleLinear()
-        .domain([0, d3.max(Object.values(window.totalIndicationCounts)) / 2, d3.max(Object.values(window.totalIndicationCounts))])
-        .range(["#ccffcc", "#00cc00", "#006400"])
-        .interpolate(d3.interpolateHcl);
-
-    const reactionColorScale = d3.scaleLinear()
-        .domain([0, d3.max(Object.values(window.totalReactionCounts)) / 2, d3.max(Object.values(window.totalReactionCounts))])
-        .range(["#ffcccc", "#ff0000", "#8B0000"])
-        .interpolate(d3.interpolateHcl);
 
     const link = diagramGroup.append("g")
         .attr("class", "links")
@@ -1703,9 +1872,21 @@ function drawSankeyDiagram(nodesData, linksData) {
         .style("font-size", d => {
             const minFont = 8;
             const maxFont = 12;
-            const scaledSize = Math.min(d.width / 2, maxFont);
-            return `${Math.max(scaledSize, minFont)}px`;
+            let scaledSize = Math.min(d.width / 2, maxFont);
+            
+            if (isToggled && (d.source.type === "indication" || d.target.type === "indication" ||
+                              d.source.type === "reaction"  || d.target.type === "reaction")) {
+                scaledSize = Math.max(14, scaledSize);
+            }
+            return `${scaledSize}px`;
         })
+        .style("font-weight", d => {
+            if (isToggled && (d.source.type === "indication" || d.target.type === "indication" ||
+                              d.source.type === "reaction"  || d.target.type === "reaction")) {
+                return "bold";
+            }
+            return "normal";
+        })        
         .append("textPath")
         .attr("href", d => `#link-label-path-${d.source.id}-${d.target.id}`)
         .attr("startOffset", d => {
@@ -2078,9 +2259,9 @@ function updateFadedState() {
         }
         isCountryFilterActive = !isCountryFilterActive;
         if (isCountryFilterActive) {
-            toggleCountryFilterBtn.textContent = 'See Country Specific';
+            toggleCountryFilterBtn.textContent = 'Country Specific';
         } else {
-            toggleCountryFilterBtn.textContent = 'See Global Data';
+            toggleCountryFilterBtn.textContent = 'Global Data';
         }
         showProductInfo(currentProductData);
     });
@@ -2135,6 +2316,11 @@ function updateFadedState() {
             .attr("width", outerWidth + margin.left + margin.right)
             .attr("height", outerHeight + margin.top + margin.bottom)
             .style("border", "1px solid black");
+
+        svg.transition().duration(500).call(
+            zoom.transform,
+            d3.zoomIdentity
+        );
 
         d3.select("#sankey-container svg")
             .attr("width", document.getElementById("sankey-container").clientWidth)
