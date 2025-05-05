@@ -581,7 +581,7 @@ html, body {
     margin-top: 5rem;
     width: 90%;
     height: 80vh;
-    overflow: visible;
+    overflow: auto;
   }
   
   #circular-slider {
@@ -735,5 +735,56 @@ html, body {
   
   .faded {
     opacity: 0.5;
+  }
+  
+  .compare-controls {
+    margin: 1rem 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .compare-notice {
+    font-style: italic;
+    color: #555;
+  }
+  
+#multi-sankey-container {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+#multi-sankey-container .sankey-panel {
+  flex: 1 1 calc(25% - 1rem);
+  min-width: 200px;
+  border: 1px solid #ccc;
+  padding: 0.5rem;
+}
+
+  .multi-sankey-container .sankey-panel .close-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #888;
+  }
+  .multi-sankey-container .sankey-panel .close-btn:hover {
+    color: #f00;
+  }
+  .sankey-panel {
+    position: relative;
+    width:  100%;
+  }
+  .sankey-panel svg {
+    display: block;
+    width: 100%;
+    height:100%;
   }
   

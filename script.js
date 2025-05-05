@@ -20,7 +20,32 @@ let reactionColorScale;
 let indicationColorScale;
 let beatingProducts = [];
 
+let currentNodesData = null;
+let currentLinksData = null;
+
+
+let isMultiMode = false;
+let multiSelectionStep = 0;
+const multiProducts = [];       
+const maxCompare = 4;
+
+function ordinal(n) {
+    return n + (n===1?'st':n===2?'nd':n===3?'rd':'th');
+  }
+  
+
 let isToggled = false;
+
+const outcomeOrder = [
+    "Death",
+    "Life-Threatening",
+    "Disabling",
+    "Hospitalization",
+    "Congenital Anomali",
+    "Not Serious",
+    "Other"
+  ];
+  
 
 const timelineBar = d3.select('#timeline-bar');
 let weeklyReportCounts = [];
@@ -708,7 +733,7 @@ d3.csv("data.csv", function (d, i) {
     selectedStartDate = minDate;
     selectedEndDate = maxDate;
 
-    groupedData = groupDataByCountryAndProduct(data);
+    groupedData = groupDataByOutcomeAndProduct(data);
     totalReports = data.length;
 
     initializeSlider(totalReports);
@@ -976,7 +1001,7 @@ function filterDataByReportLimitAndDateRange(data, reportLimit, selectedStartDat
     });
 
     const limitedReports = filteredReports.slice(0, reportLimit);
-    let groupedData = groupDataByCountryAndProduct(limitedReports);
+    let groupedData = groupDataByOutcomeAndProduct(limitedReports);
     return groupedData;
 }
 
@@ -1185,16 +1210,28 @@ function initializeDateRangeSlider() {
     }
 }
 
-function groupDataByCountryAndProduct(data) {
-    return Array.from(d3.group(data, d => d.ReportCountry), ([key, values]) => ({
-        key,
-        values: Array.from(d3.group(values, d => d.Medicinalproduct), ([key, values]) => ({
-            key,
-            value: values.length,
-            reports: values
-        })).sort((a, b) => d3.descending(a.value, b.value))
-    })).sort((a, b) => d3.ascending(a.key, b.key));
-}
+// function groupDataByCountryAndProduct(data) {
+//     return Array.from(d3.group(data, d => d.ReportCountry), ([key, values]) => ({
+//         key,
+//         values: Array.from(d3.group(values, d => d.Medicinalproduct), ([key, values]) => ({
+//             key,
+//             value: values.length,
+//             reports: values
+//         })).sort((a, b) => d3.descending(a.value, b.value))
+//     })).sort((a, b) => d3.ascending(a.key, b.key));
+// }
+
+function groupDataByOutcomeAndProduct(data) {
+       return Array.from(d3.group(data, d => d.Outcome), ([key, values]) => ({
+         key,
+         values: Array.from(d3.group(values, d => d.Medicinalproduct), ([key, values]) => ({
+           key,
+           value: values.length,
+           reports: values
+         })).sort((a, b) => d3.descending(a.value, b.value))
+       }))
+       .sort((a, b) => outcomeOrder.indexOf(a.key) - outcomeOrder.indexOf(b.key));
+     }
 
 function initializeSlider(maxReports) {
     const roundedMaxReports = Math.ceil(maxReports / 100) * 100;
@@ -1267,7 +1304,7 @@ function drawTreemap(data) {
                 selectedCountryForFilter = d.data.key;
                 const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
                 const selectedReports = parseInt(reportSlider.value, 10);
-                const grouped = groupDataByCountryAndProduct(filteredData.slice(0, selectedReports));
+                const grouped = groupDataByOutcomeAndProduct(filteredData.slice(0, selectedReports));
                 drawTreemap(grouped);
             }
         })
@@ -1312,7 +1349,7 @@ function drawTreemap(data) {
                 selectedCountryForFilter = d.data.key;
                 const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
                 const selectedReports = parseInt(reportSlider.value, 10);
-                const grouped = groupDataByCountryAndProduct(filteredData.slice(0, selectedReports));
+                const grouped = groupDataByOutcomeAndProduct(filteredData.slice(0, selectedReports));
                 drawTreemap(grouped);
             }
         })
@@ -1326,21 +1363,16 @@ function drawTreemap(data) {
         .attr("class", "product")
         .attr("transform", d => `translate(${d.x0 - d.parent.x0},${d.y0 - d.parent.y0})`)
         .on("click", function(event, d) {
-            try {
-                stopAllBeating();
-                triggerBeatingForProduct([d.data.key]);                
-                updateFadedState();
-                if (d.data.reports && d.data.reports.length > 0) {
-                    const firstReport = d.data.reports[0];
-                    currentCountry = firstReport.ReportCountry || 'Unknown Country';
-                } else {
-                    currentCountry = 'Unknown Country';
-                }
-                showProductInfo(d.data);
-            } catch (error) {
-                console.error("Error in treemap click handler:", error);
+            stopAllBeating();
+            triggerBeatingForProduct([d.data.key]);
+            updateFadedState();
+          
+            if (isMultiMode) {
+              addMultiSankey(d.data);
+            } else {
+              showProductInfo(d.data);
             }
-        });
+          });
 
     products.append("rect")
         .datum(d => d)
@@ -1396,43 +1428,140 @@ function drawTreemap(data) {
         let angle = 0;
         let radius = dotSize * 2.5;
 
-        const placeDotsRadially = (names, color) => {
-            names.forEach((name, i) => {
-                if (name) {
-                    const nextX = centerX + radius * Math.cos(angle);
-                    const nextY = centerY + radius * Math.sin(angle);
-                    if (nextX - dotSize > 0 && nextX + dotSize < productWidth &&
-                        nextY - dotSize > 0 && nextY + dotSize < productHeight) {
-                        dotGroup.append("circle")
-                            .attr("cx", nextX)
-                            .attr("cy", nextY)
-                            .attr("r", dotSize)
-                            .style("fill", color)
-                            .style("cursor","pointer")
-                            .on("mouseover", (event) => {
-                                tooltip.transition()
-                                    .duration(200)
-                                    .style("opacity", 1);
-                                tooltip.html(`${name}`)
-                                    .style("left", `${event.pageX + 5}px`)
-                                    .style("top", `${event.pageY - 28}px`);
-                            })
-                            .on("mouseout", () => {
-                                tooltip.transition().duration(500).style("opacity", 0);
-                            });
-                        angle += Math.PI / 2;
-                        if (angle >= Math.PI * 2) {
-                            angle = 0;
-                            radius += dotSize * 2.5;
-                        }
-                    }
-                }
-            });
-        };
-        placeDotsRadially(Array.from(allBrandNames), "blue");
+        // const placeDotsRadially = (names, color) => {
+        //     names.forEach((name, i) => {
+        //         if (name) {
+        //             const nextX = centerX + radius * Math.cos(angle);
+        //             const nextY = centerY + radius * Math.sin(angle);
+        //             if (nextX - dotSize > 0 && nextX + dotSize < productWidth &&
+        //                 nextY - dotSize > 0 && nextY + dotSize < productHeight) {
+        //                 dotGroup.append("circle")
+        //                     .attr("cx", nextX)
+        //                     .attr("cy", nextY)
+        //                     .attr("r", dotSize)
+        //                     .style("fill", color)
+        //                     .style("cursor","pointer")
+        //                     .on("mouseover", (event) => {
+        //                         tooltip.transition()
+        //                             .duration(200)
+        //                             .style("opacity", 1);
+        //                         tooltip.html(`${name}`)
+        //                             .style("left", `${event.pageX + 5}px`)
+        //                             .style("top", `${event.pageY - 28}px`);
+        //                     })
+        //                     .on("mouseout", () => {
+        //                         tooltip.transition().duration(500).style("opacity", 0);
+        //                     });
+        //                 angle += Math.PI / 2;
+        //                 if (angle >= Math.PI * 2) {
+        //                     angle = 0;
+        //                     radius += dotSize * 2.5;
+        //                 }
+        //             }
+        //         }
+        //     });
+        // };
+        // placeDotsRadially(Array.from(allBrandNames), "blue");
     });
 }
 
+function buildSankeyData(productKey, reports){
+    const indicationCounts = {}, reactionCounts = {};
+    reports.forEach(r=>{
+      splitBySemicolon(r.DrugIndication).forEach(i=>{
+        if(i) indicationCounts[i] = (indicationCounts[i]||0)+1;
+      });
+      splitBySemicolon(r.Reactions).forEach(rx=>{
+        if(rx) reactionCounts[rx] = (reactionCounts[rx]||0)+1;
+      });
+    });
+    const allInd = Object.keys(indicationCounts).sort();
+    const allRe = Object.keys(reactionCounts).sort();
+
+    const nodes = [
+      ...allInd.map(name=>({ id:`ind_${name}`,    name, type:'indication' })),
+      { id:`prod_${productKey}`, name:productKey, type:'product', clickedOnce:false },
+      ...allRe.map(name=>({ id:`reac_${name}`,    name, type:'reaction' }))
+    ];
+    const links = [
+      ...allInd.map(name=>({
+        source:`ind_${name}`, target:`prod_${productKey}`,
+        value:indicationCounts[name], originalValue:indicationCounts[name]
+      })),
+      ...allRe.map(name=>({
+        source:`prod_${productKey}`, target:`reac_${name}`,
+        value:reactionCounts[name], originalValue:reactionCounts[name]
+      }))
+    ];
+    return { nodes, links };
+  }
+
+function addMultiSankey(productData) {
+    
+    multiProducts.push(productData);
+  
+    if (multiProducts.length >= maxCompare) {
+      isMultiMode = false;
+      compareNotice.textContent = '';
+    } else {
+      multiSelectionStep = multiProducts.length + 1;
+      compareNotice.textContent = `Choose your ${ordinal(multiSelectionStep)} product.`;
+    }
+  
+    renderMultiPanels();
+  }
+  function renderMultiPanels() {
+    multiSankeyContainer.innerHTML = '';
+  
+    const cols = multiProducts.length || 1;
+  
+    multiSankeyContainer.style.display = 'flex';
+    multiSankeyContainer.style.flexWrap = 'wrap';
+  
+    multiProducts.forEach((prod, idx) => {
+      const panel = document.createElement('div');
+      panel.className = 'sankey-panel';
+  
+      panel.style.flex = `1 1 calc(${100/cols}% - 16px)`;
+      panel.style.margin = '8px';
+      panel.style.boxSizing = 'border-box';
+  
+      panel.style.overflowY = 'auto';
+      panel.style.maxHeight = '80vh';
+  
+      const btn = document.createElement('button');
+      btn.className = 'close-btn';
+      btn.innerHTML = '×';
+      btn.addEventListener('click', () => removeMultiSankey(idx));
+      panel.appendChild(btn);
+  
+      const svgContainer = document.createElement('div');
+      svgContainer.id = `multi-sankey-${idx}`;
+      panel.appendChild(svgContainer);
+  
+      multiSankeyContainer.appendChild(panel);
+  
+      drawSankeyForProduct(prod, `#multi-sankey-${idx}`);
+    });
+  }
+  
+  function drawSankeyForProduct(productData, selector) {
+    d3.select(selector).html('');
+    const reportsToUse = originalData.filter(r => 
+      r.Medicinalproduct.trim().toLowerCase() === productData.key.trim().toLowerCase()
+    );
+    const { nodes, links } = buildSankeyData(productData.key, reportsToUse);
+    drawSankeyDiagram(nodes, links, selector);
+  }
+  function removeMultiSankey(idx) {
+    multiProducts.splice(idx,1);
+    renderMultiPanels();
+    if (multiProducts.length < maxCompare) {
+      addCompareBtn.disabled = false;
+    }
+  }
+  
+      
 
 function drawLegend() {
     d3.select("#legend-container").selectAll("*").remove();
@@ -1447,18 +1576,18 @@ function drawLegend() {
         .attr("class", "legend")
         .attr("transform", `translate(${outerWidth / 4}, 20)`);
 
-    legendGroup.append("circle")
-        .attr("cx", -75)
-        .attr("cy", 0)
-        .attr("r", 10)
-        .attr("fill", "blue");
+    // legendGroup.append("circle")
+    //     .attr("cx", -75)
+    //     .attr("cy", 0)
+    //     .attr("r", 10)
+    //     .attr("fill", "blue");
 
-    legendGroup.append("text")
-        .attr("x", -60)
-        .attr("y", 5)
-        .text("Brand Names")
-        .style("font-size", "12px")
-        .attr("text-anchor", "start");
+    // legendGroup.append("text")
+    //     .attr("x", -60)
+    //     .attr("y", 5)
+    //     .text("Brand Names")
+    //     .style("font-size", "12px")
+    //     .attr("text-anchor", "start");
 
     const outcomeLegendGroup = legendGroup.append("g")
         .attr("class", "outcome-legend")
@@ -1585,34 +1714,47 @@ function showProductInfo(productData) {
     productNode.indicationCount = allIndications.length;
     productNode.reactionCount = allReactions.length;
 
+    currentNodesData = nodes;
+    currentLinksData = links;
     drawSankeyDiagram(nodes, links);
+
 }
 
 
 const internalMargin = { left: 10, right: 100 };
 
-function drawSankeyDiagram(nodesData, linksData) {
-    const sankeyContainer = document.getElementById("sankey-container");
-    const sankeyWidth = window.innerWidth * 0.88;
-    const sankeyHeight = Math.max(40000, sankeyContainer.clientHeight || 80000);
+function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container") {
+
+    const container = d3.select(containerSelector);
+
+  container.selectAll("*").remove();
+    const sankeyWidth  = container.node().clientWidth;
+    const sankeyHeight = container.node().clientHeight;
   
-    const sankeySvg = d3.select("#sankey-container")
-        .append("svg")
-        .attr("width", sankeyWidth)
-        .attr("height", sankeyHeight)
-        .append("g");
+    const sankeySvg = container.append("svg")
+    .attr("width","100%")
+    .attr("height","100%")
+    .attr("viewBox", `0 0 ${sankeyWidth} ${sankeyHeight}`)
+    .attr("preserveAspectRatio","xMidYMid meet");
+    
   
-    const sankey = d3.sankey()
-        .nodeWidth(20)
-        .nodePadding(20)
-        .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 6]])
-        .nodeAlign(d3.sankeyCenter)
-        .nodeSort(null);
+    const g = sankeySvg.append("g");
   
-    let graph = {
-        nodes: nodesData.map(d => Object.assign({}, d)),
-        links: linksData.map(d => Object.assign({}, d))
-    };
+    const zoomBehavior = d3.zoom()
+      .scaleExtent([0.5, 5])
+      .on("zoom", ({transform}) => g.attr("transform", transform));
+    sankeySvg.call(zoomBehavior);
+  
+    const sankeyGen = d3.sankey()
+      .nodeWidth(20)
+      .nodePadding(20)
+      .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 6]])
+      .nodeAlign(d3.sankeyCenter);
+  
+        let graph = {
+                    nodes: nodes.map(d => Object.assign({}, d)),
+                    links: links.map(d => Object.assign({}, d))
+                };
   
     drawSankeyGraph(graph);
 
@@ -1665,10 +1807,15 @@ function drawSankeyDiagram(nodesData, linksData) {
         if (minActualNodeHeight < minNodeHeight) {
             const heightScalingFactor = minNodeHeight / minActualNodeHeight;
             sankeyHeight *= heightScalingFactor;
+            d3.select(containerSelector)
+            .style('height', sankeyHeight + 'px');
+
+            sankeySvg
+            .attr('viewBox', `0 0 ${sankeyWidth} ${sankeyHeight}`);
+
             sankey.extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 1]]);
             sankey(graph);
         }
-        sankeySvg.attr("height", sankeyHeight);
         const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
         const diagramGroup = sankeySvg.append("g")
             .attr("transform", `translate(${(sankeyWidth - (d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0))) / 2},0)`);
@@ -2213,7 +2360,9 @@ function drawSankeyDiagram(nodesData, linksData) {
 }
 
 window.addEventListener("resize", () => {
-    drawSankeyDiagram(currentNodesData, currentLinksData);
+    if (currentNodesData && currentLinksData) {
+      drawSankeyDiagram(currentNodesData, currentLinksData);
+    }
   });
 
 function showTooltip(element, text) {
@@ -2559,3 +2708,22 @@ function updateFadedState() {
         renderTree();
     });
 });
+
+const addCompareBtn = document.getElementById('add-compare-btn');
+const compareNotice = document.getElementById('compare-notice');
+const multiSankeyContainer = document.getElementById('multi-sankey-container');
+
+addCompareBtn.addEventListener('click', () => {
+    if (multiProducts.length === 0 && currentProductData) {
+      multiProducts.push(currentProductData);
+    }
+    if (multiProducts.length >= maxCompare) {
+      alert(`You can compare at most ${maxCompare} products.`);
+      return;
+    }
+    isMultiMode = true;
+    multiSelectionStep = multiProducts.length + 1;
+    compareNotice.textContent = `Choose your ${ordinal(multiSelectionStep)} product.`;
+    renderMultiPanels();
+  });
+  
