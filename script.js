@@ -1496,70 +1496,66 @@ function buildSankeyData(productKey, reports){
     return { nodes, links };
   }
 
-function addMultiSankey(productData) {
-    
+function addMultiSankey(productData){
+  // avoid duplicates by product key (case-insensitive)
+  const key = String(productData.key).trim().toLowerCase();
+  const exists = multiProducts.some(p => String(p.key).trim().toLowerCase() === key);
+  if (!exists){
     multiProducts.push(productData);
-  
-    if (multiProducts.length >= maxCompare) {
-      isMultiMode = false;
-      compareNotice.textContent = '';
-    } else {
-      multiSelectionStep = multiProducts.length + 1;
-      compareNotice.textContent = `Choose your ${ordinal(multiSelectionStep)} product.`;
-    }
-  
     renderMultiPanels();
   }
-  function renderMultiPanels() {
-    multiSankeyContainer.innerHTML = '';
-  
-    const cols = multiProducts.length || 1;
-  
-    multiSankeyContainer.style.display = 'flex';
-    multiSankeyContainer.style.flexWrap = 'wrap';
-  
-    multiProducts.forEach((prod, idx) => {
-      const panel = document.createElement('div');
-      panel.className = 'sankey-panel';
-  
-      panel.style.flex = `1 1 calc(${100/cols}% - 16px)`;
-      panel.style.margin = '8px';
-      panel.style.boxSizing = 'border-box';
-  
-      panel.style.overflowY = 'auto';
-      panel.style.maxHeight = '80vh';
-  
-      const btn = document.createElement('button');
-      btn.className = 'close-btn';
-      btn.innerHTML = '×';
-      btn.addEventListener('click', () => removeMultiSankey(idx));
-      panel.appendChild(btn);
-  
-      const svgContainer = document.createElement('div');
-      svgContainer.id = `multi-sankey-${idx}`;
-      panel.appendChild(svgContainer);
-  
-      multiSankeyContainer.appendChild(panel);
-  
-      drawSankeyForProduct(prod, `#multi-sankey-${idx}`);
-    });
-  }
-  
-  function drawSankeyForProduct(productData, selector) {
-    d3.select(selector).html('');
-    const reportsToUse = originalData.filter(r => 
-      r.Medicinalproduct.trim().toLowerCase() === productData.key.trim().toLowerCase()
-    );
-    const { nodes, links } = buildSankeyData(productData.key, reportsToUse);
-    drawSankeyDiagram(nodes, links, selector);
-  }
-  function removeMultiSankey(idx) {
-    multiProducts.splice(idx,1);
-    renderMultiPanels();
-    if (multiProducts.length < maxCompare) {
-      addCompareBtn.disabled = false;
-    }
-  }
+}
+
+function renderMultiPanels(){
+  multiSankeyContainer.innerHTML = '';
+
+  multiProducts.forEach((prod, idx) => {
+    const panel = document.createElement('div');
+    panel.className = 'sankey-panel';
+
+    // Header with product name
+    const header = document.createElement('div');
+    header.className = 'panel-header';
+    header.textContent = prod.key;
+    panel.appendChild(header);
+
+    // Close button
+    const btn = document.createElement('button');
+    btn.className = 'close-btn';
+    btn.setAttribute('aria-label', 'Remove');
+    btn.textContent = '×';
+    btn.addEventListener('click', () => removeMultiSankey(idx));
+    panel.appendChild(btn);
+
+    // SVG wrapper
+    const svgWrap = document.createElement('div');
+    svgWrap.className = 'svg-wrap';
+    const svgSlot = document.createElement('div');
+    svgSlot.id = `multi-sankey-${idx}`;
+    svgWrap.appendChild(svgSlot);
+    panel.appendChild(svgWrap);
+
+    multiSankeyContainer.appendChild(panel);
+
+    // Render the sankey
+    drawSankeyForProduct(prod, `#multi-sankey-${idx}`);
+  });
+}
+
+function drawSankeyForProduct(productData, selector){
+  d3.select(selector).html('');
+  const reportsToUse = originalData.filter(r =>
+    r.Medicinalproduct.trim().toLowerCase() === productData.key.trim().toLowerCase()
+  );
+  const { nodes, links } = buildSankeyData(productData.key, reportsToUse);
+  drawSankeyDiagram(nodes, links, selector);
+}
+
+function removeMultiSankey(idx){
+  multiProducts.splice(idx, 1);
+  renderMultiPanels(); // grid reflows; the next card “takes the place”
+}
+
   
       
 
@@ -1646,79 +1642,66 @@ function triggerBeatingForProduct(products) {
 }
 
 function showProductInfo(productData) {
-    currentProductData = productData;
-    d3.select("#sankey-container").html("");
+  currentProductData = productData;
+  d3.select("#sankey-container").html("");
 
-    let reportsToUse;
+  const targetProductName = productData.key.trim().toLowerCase();
+  const reportsToUse = originalData.filter(report =>
+    report.Medicinalproduct.trim().toLowerCase() === targetProductName
+  );
 
-    if (isCountryFilterActive) {
-        reportsToUse = productData.reports;
-        countryFilterMessage.textContent = `${currentCountry}`;
-        toggleCountryFilterBtn.textContent = 'Global Data';
-    } else {
-        const targetProductName = productData.key.trim().toLowerCase();
-        reportsToUse = originalData.filter(report =>
-            report.Medicinalproduct.trim().toLowerCase() === targetProductName
-        );
-        countryFilterMessage.textContent = '';
-        toggleCountryFilterBtn.textContent = 'Country Specific';
-    }
+  window.currentReportsToUse = reportsToUse; // still used by expansion helpers
 
-    window.currentReportsToUse = reportsToUse;
+  const indicationCounts = {};
+  const reactionCounts = {};
 
-    const indicationCounts = {};
-    const reactionCounts = {};
+  if (reportsToUse && reportsToUse.length > 0) {
+    reportsToUse.forEach(report => {
+      splitBySemicolon(report.DrugIndication).forEach(indication => {
+        if (indication) {
+          const key = indication.trim();
+          indicationCounts[key] = (indicationCounts[key] || 0) + 1;
+        }
+      });
+      splitBySemicolon(report.Reactions).forEach(reaction => {
+        if (reaction) {
+          const key = reaction.trim();
+          reactionCounts[key] = (reactionCounts[key] || 0) + 1;
+        }
+      });
+    });
+  }
 
-    if (reportsToUse && reportsToUse.length > 0) {
-        reportsToUse.forEach(report => {
-            splitBySemicolon(report.DrugIndication).forEach(indication => {
-                if (indication) {
-                    const normalizedIndication = indication.trim();
-                    indicationCounts[normalizedIndication] = (indicationCounts[normalizedIndication] || 0) + 1;
-                }
-            });
-            splitBySemicolon(report.Reactions).forEach(reaction => {
-                if (reaction) {
-                    const normalizedReaction = reaction.trim();
-                    reactionCounts[normalizedReaction] = (reactionCounts[normalizedReaction] || 0) + 1;
-                }
-            });
-        });
-    }
+  const allIndications = Object.keys(indicationCounts).sort();
+  const allReactions = Object.keys(reactionCounts).sort();
 
-    const allIndications = Object.keys(indicationCounts).sort();
-    const allReactions = Object.keys(reactionCounts).sort();
+  const nodes = [
+    ...allIndications.map(name => ({ id: `ind_${name}`, name, type: 'indication' })),
+    { id: `prod_${productData.key}`, name: productData.key, type: 'product', clickedOnce: false },
+    ...allReactions.map(name => ({ id: `reac_${name}`, name, type: 'reaction' })),
+  ];
 
-    const nodes = [
-        ...allIndications.map(name => ({ id: `ind_${name}`, name, type: 'indication' })),
-        { id: `prod_${productData.key}`, name: productData.key, type: 'product', clickedOnce: false },
-        ...allReactions.map(name => ({ id: `reac_${name}`, name, type: 'reaction' })),
-    ];
+  const links = [
+    ...allIndications.map(name => ({
+      source: `ind_${name}`, target: `prod_${productData.key}`,
+      value: indicationCounts[name], originalValue: indicationCounts[name],
+    })),
+    ...allReactions.map(name => ({
+      source: `prod_${productData.key}`, target: `reac_${name}`,
+      value: reactionCounts[name], originalValue: reactionCounts[name],
+    })),
+  ];
 
-    const links = [
-        ...allIndications.map(name => ({
-            source: `ind_${name}`,
-            target: `prod_${productData.key}`,
-            value: indicationCounts[name],
-            originalValue: indicationCounts[name],
-        })),
-        ...allReactions.map(name => ({
-            source: `prod_${productData.key}`,
-            target: `reac_${name}`,
-            value: reactionCounts[name],
-            originalValue: reactionCounts[name],
-        })),
-    ];
+  const productNode = nodes.find(n => n.type === 'product');
+  productNode.indicationCount = allIndications.length;
+  productNode.reactionCount   = allReactions.length;
 
-    const productNode = nodes.find(n => n.type === 'product');
-    productNode.indicationCount = allIndications.length;
-    productNode.reactionCount = allReactions.length;
+  currentNodesData = nodes;
+  currentLinksData = links;
 
-    currentNodesData = nodes;
-    currentLinksData = links;
-    drawSankeyDiagram(nodes, links);
-
+  drawSankeyDiagram(nodes, links);  // will auto-center & scroll correctly
 }
+
 
 
 const internalMargin = { left: 10, right: 100 };
@@ -2419,68 +2402,6 @@ function updateFadedState() {
         showProductInfo(currentProductData);
     });
 
-    const toggleViewBtn = document.getElementById('toggle-view-btn');
-    const contentContainer = document.getElementById('content-container');
-
-    toggleViewBtn.addEventListener('click', function() {
-        isToggled = !isToggled;
-        if (isToggled) {
-            contentContainer.classList.add('toggled-view');
-            resizeSVGsForToggledView();
-            d3.select("#sankey-container")
-                .style("border", "1px solid #ccc")
-                .style("padding", "5px");
-        } else {
-            contentContainer.classList.remove('toggled-view');
-            resetSVGsToDefault();
-            d3.select("#sankey-container")
-                .style("border", "none")
-                .style("padding", "0");
-        }
-    });
-
-    function resizeSVGsForToggledView() {
-        const treemapElement = document.getElementById("treemap");
-        const newWidth = treemapElement.clientWidth;
-        const newHeight = treemapElement.clientHeight;
-        d3.select("#treemap svg")
-            .attr("width", newWidth)
-            .attr("height", newHeight)
-            .style("border", "2px solid black");
-
-        const bbox = zoomGroup.node().getBBox();
-        const scale = Math.min(newWidth / bbox.width, newHeight / bbox.height);
-        const translateX = (newWidth - bbox.width * scale) / 2;
-        const translateY = (newHeight - bbox.height * scale) / 2;
-
-        svg.transition().duration(500).call(
-            zoom.transform,
-            d3.zoomIdentity.translate(translateX, translateY).scale(scale)
-        );
-
-        d3.select("#sankey-container svg")
-            .attr("width", document.getElementById("sankey-container").clientWidth)
-            .attr("height", newHeight)
-            .style("overflow", "scroll");
-    }
-
-    function resetSVGsToDefault() {
-        d3.select("#treemap svg")
-            .attr("width", outerWidth + margin.left + margin.right)
-            .attr("height", outerHeight + margin.top + margin.bottom)
-            .style("border", "1px solid black");
-
-        svg.transition().duration(500).call(
-            zoom.transform,
-            d3.zoomIdentity
-        );
-
-        d3.select("#sankey-container svg")
-            .attr("width", document.getElementById("sankey-container").clientWidth)
-            .attr("height", 800)
-            .style("overflow-y", "visible");
-    }
-
     const toggleBtn = document.getElementById('toggle-structure-btn');
     const structureBox = document.getElementById('structure-box');
 
@@ -2709,21 +2630,39 @@ function updateFadedState() {
     });
 });
 
+
 const addCompareBtn = document.getElementById('add-compare-btn');
 const compareNotice = document.getElementById('compare-notice');
 const multiSankeyContainer = document.getElementById('multi-sankey-container');
 
+// Toggle compare mode on button click
+// Toggle compare mode on button click
 addCompareBtn.addEventListener('click', () => {
-    if (multiProducts.length === 0 && currentProductData) {
-      multiProducts.push(currentProductData);
-    }
-    if (multiProducts.length >= maxCompare) {
-      alert(`You can compare at most ${maxCompare} products.`);
-      return;
-    }
-    isMultiMode = true;
-    multiSelectionStep = multiProducts.length + 1;
-    compareNotice.textContent = `Choose your ${ordinal(multiSelectionStep)} product.`;
-    renderMultiPanels();
-  });
+  isMultiMode = !isMultiMode;
+
+  addCompareBtn.classList.toggle('active', isMultiMode);
+  addCompareBtn.setAttribute('aria-pressed', String(isMultiMode));
+  addCompareBtn.textContent = isMultiMode ? 'Comparison: ON' : 'Comparison: OFF';
+  compareNotice.textContent = isMultiMode
+    ? 'Compare mode ON — click medicinal products in the treemap to add them. Click the button again to exit.'
+    : '';
+
+  const single = document.getElementById('sankey-container');
+
+  if (isMultiMode) {
+    // Hide single-view and clear it to make space
+    d3.select('#sankey-container').html('');
+    single.style.display = 'none';
+    // Seed with the current selection (if any)
+    if (multiProducts.length === 0 && currentProductData) addMultiSankey(currentProductData);
+  } else {
+    // Leaving compare: remove all compare panels
+    multiProducts.length = 0;
+    multiSankeyContainer.innerHTML = '';
+    // Restore single-view container
+    single.style.display = '';
+  }
+});
+
+
   

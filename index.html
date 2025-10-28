@@ -2,52 +2,63 @@
 <html lang="en">
 
 <head>
+    <!-- Meta tags and page title -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>ENVISION</title>
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="styles.css">
+
+    <!-- Third-party libraries: Underscore, D3, Sankey -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.13.6/underscore-min.js"></script>
     <script src="https://d3js.org/d3.v6.min.js"></script>
     <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 </head>
 
 <body>
+    <!-- Main container for the entire app -->
     <div id="content-container">
+
+        <!-- Page header -->
         <h1>ENVISION</h1>
         <h2>(OpenFDA Adverse Drug Events Database Exploratory Interactive Visualization)</h2>
 
-        
-            <button id="toggle-structure-btn" class="toggle-structure-button">
-                Understanding the Structure of OpenFDA Data
-            </button>
+        <!-- Button to toggle viewing of the underlying data structure -->
+        <button id="toggle-structure-btn" class="toggle-structure-button">
+            Understanding the Structure of OpenFDA Data
+        </button>
 
+        <!-- Placeholder for a circular slider SVG -->
         <svg id="circular-slider"></svg>
+
+        <!-- Displays current filter values (age, weight, sex) -->
         <div id="filter-values">
             <p><span id="age-value-display"></span></p>
             <p><span id="weight-value-display"></span></p>
             <p><span id="sex-value-display"></span></p>
         </div>
 
+        <!-- Report count slider -->
         <div id="slider-container">
             <p id="report-count">1000 reports</p>
             <input type="range" id="report-slider" min="0" max="1000" value="0" step="100">
         </div>
 
+        <!-- Timeline bar for filtering by date -->
         <div id="timeline-container">
             <div id="timeline-bar"></div>
         </div>
 
-        <div class="button-group">
-            <button id="toggle-view-btn" class="toggle-view-button">
-                Change View
-            </button>
-        </div>
+        
 
+        <!-- Hidden box showing the data structure when toggled -->
         <div class="structure-box" id="structure-box">
             <div class="structure-header">Understanding the Structure of OpenFDA Data</div>
             <svg id="data-structure-svg"></svg>
         </div>
 
+        <!-- Search bar and dropdown for quick lookups -->
         <div id="search-container">
             <input type="text" id="search-bar" placeholder="Search...">
             <span class="info-icon" aria-labelledby="tooltip-id" tabindex="0" aria-label="Search Information"
@@ -56,22 +67,30 @@
             <div id="search-results"></div>
         </div>
 
+        <!-- Main visualization area: legend, treemap, Sankey diagrams, etc. -->
         <div class="clearfix">
+            <!-- Legend for color/shape coding -->
             <div id="legend-container"></div>
+
+            <!-- Treemap for hierarchical view of data -->
             <div id="treemap"></div>
+
+            <!-- Controls for comparing multiple products side by side -->
             <div class="compare-controls">
-                <button id="add-compare-btn">Compare Products</button>
+                <button id="add-compare-btn" aria-pressed="false">Comparison: OFF</button>
                 <span id="compare-notice" class="compare-notice"></span>
-              </div>
-              <div id="multi-sankey-container" class="multi-sankey-container"></div>
-              
-            <div id="country-filter-container">
-                <button id="toggle-country-filter-btn">Global Data</button>
-                <div id="country-filter-message"></div>
             </div>
+
+            <!-- Container for multiple Sankey diagrams when comparing -->
+            <div id="multi-sankey-container" class="multi-sankey-container"></div>
+
+            
+
+            <!-- Single Sankey diagram container -->
             <div id="sankey-container"></div>
         </div>
 
+        <!-- Main JavaScript file initializing and controlling the app -->
         <script src="script.js"></script>
     </div>
 </body>
