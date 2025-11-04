@@ -749,3 +749,28 @@ h2 {
   display:block;
 }
 #country-filter-container{ display:none !important; }
+
+.tooltip.sankey-tooltip {
+  position: absolute;
+  text-align: center;
+  padding: 0.375rem;
+  font: 0.75rem sans-serif;
+  background: rgba(0,0,0,0.8);
+  color: #fff;
+  border: 0;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 9999;
+}
+
+.tooltip { position: absolute; }
+
+#treemap {
+  overflow: visible;
+  width: 90vw;
+  height: 80vh;
+  margin: 0 auto;
+  display: block;
+}
+#treemap svg { display: block; margin: 0 auto; }

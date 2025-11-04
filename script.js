@@ -104,10 +104,8 @@ const zoomGroup = svg.append("g")
         zoomGroup.attr("transform", event.transform);
     });
 
-d3.select("#treemap svg").call(zoom);
-
-
-svg.call(zoom);
+//d3.select("#treemap svg").call(zoom);
+//svg.call(zoom);
 
 const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
@@ -514,156 +512,6 @@ function updateSexButtons() {
     .duration(150)
     .attr("fill", circularFilters.Sex.female ? "#FFB6C1" : "#fff")
     .attr("stroke", circularFilters.Sex.female ? "#FF889A" : "#ccc");
-}
-
-function addHandle(segment, type) {
-    const initialValue = type === 'min' ? segment.range[0] : segment.range[1];
-    const angle = scaleValueToAngle(initialValue, segment);
-    const x = sliderRadius * Math.cos(angle);
-    const y = sliderRadius * Math.sin(angle);
-
-    const handle = circularSliderSVG.append("circle")
-        .attr("class", `circular-slider-handle ${segment.name.toLowerCase()}-${type}`)
-        .attr("r", 8)
-        .attr("cx", x)
-        .attr("cy", y)
-        .attr("fill", "#fff")
-        .attr("stroke", segment.color)
-        .attr("stroke-width", 2)
-        .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
-        .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); })
-        .call(d3.drag()
-            .on("drag", function(event) { handleDrag(event, segment, type, this); })
-        );
-
-    handle.append("title")
-        .text(type === 'min' ? `${segment.name} Min` : `${segment.name} Max`);
-}
-
-function handleDrag(event, segment, type, handle) {
-    const mouse = d3.pointer(event, circularSliderSVG.node());
-    let angle = Math.atan2(mouse[1], mouse[0]);
-
-    if (angle < 0) angle += 2 * Math.PI;
-
-    if (angle < segment.startAngle) angle = segment.startAngle;
-    if (angle > segment.endAngle) angle = segment.endAngle;
-
-    const newValue = angleToValue(angle, segment);
-
-    if (type === 'min') {
-        circularFilters[segment.name].min = Math.min(newValue, circularFilters[segment.name].max - minHandleDistance);
-    } else {
-        circularFilters[segment.name].max = Math.max(newValue, circularFilters[segment.name].min + minHandleDistance);
-    }
-
-    updateHandlePosition(handle, segment, type);
-    updateSelectionArc(segment);
-    updateFilterDisplays();
-    updateTreemap();
-}
-
-function handleSexDrag(event, segment, type, handle) {
-    const mouse = d3.pointer(event, circularSliderSVG.node());
-    let angle = Math.atan2(mouse[1], mouse[0]);
-
-    if (angle < 0) angle += 2 * Math.PI;
-    if (angle < segment.startAngle) angle = segment.startAngle;
-    if (angle > segment.endAngle) angle = segment.endAngle;
-
-    const midpointAngle = (segment.startAngle + segment.endAngle) / 2;
-    const distanceFromStart = Math.abs(angle - segment.startAngle);
-    const distanceFromEnd = Math.abs(angle - segment.endAngle);
-
-    let isSelected = false;
-    if (type === 'male') {
-        isSelected = distanceFromStart < distanceFromEnd;
-        circularFilters.Sex.male = isSelected;
-    } else if (type === 'female') {
-        isSelected = distanceFromEnd < distanceFromStart;
-        circularFilters.Sex.female = isSelected;
-    }
-
-    d3.select(handle)
-        .attr("fill", circularFilters.Sex[type] ? (type === 'male' ? "#ffd1d1" : "#d1d1ff") : "#fff");
-
-    const x = sliderRadius * Math.cos(angle);
-    const y = sliderRadius * Math.sin(angle);
-    d3.select(handle)
-        .attr("cx", x)
-        .attr("cy", y);
-
-    updateSelectionArc(segment);
-    updateFilterDisplays();
-    updateTreemap();
-}
-
-function updateHandlePosition(handle, segment, type) {
-    const value = circularFilters[segment.name][type];
-    const angle = scaleValueToAngle(value, segment);
-    const x = sliderRadius * Math.cos(angle);
-    const y = sliderRadius * Math.sin(angle);
-
-    d3.select(handle)
-        .attr("cx", x)
-        .attr("cy", y);
-}
-
-function updateSelectionArc(segment) {
-    if (segment.name === 'Sex') {
-        const deltaAngle = 0.1;
-
-        let pathD = '';
-
-        if (circularFilters.Sex.male) {
-            pathD += d3.arc()
-                .innerRadius(sliderRadius)
-                .outerRadius(sliderRadius + sliderThickness)
-                .startAngle(segment.startAngle)
-                .endAngle(segment.startAngle + deltaAngle)();
-        }
-
-        if (circularFilters.Sex.female) {
-            pathD += d3.arc()
-                .innerRadius(sliderRadius)
-                .outerRadius(sliderRadius + sliderThickness)
-                .startAngle(segment.endAngle - deltaAngle)
-                .endAngle(segment.endAngle)();
-        }
-
-        segment.selectionArc.attr("d", pathD);
-    } else {
-        const startValue = circularFilters[segment.name].min;
-        const endValue = circularFilters[segment.name].max;
-
-        const startAngle = scaleValueToAngle(startValue, segment);
-        const endAngle = scaleValueToAngle(endValue, segment);
-
-        segment.selectionArc.attr("d", d3.arc()
-            .innerRadius(sliderRadius)
-            .outerRadius(sliderRadius + sliderThickness)
-            .startAngle(startAngle)
-            .endAngle(endAngle)()
-        ).attr("fill", `url(#gradient-${segment.name})`);
-    }
-}
-
-function scaleValueToAngle(value, segment) {
-    const ratio = (value - segment.range[0]) / (segment.range[1] - segment.range[0]);
-    return segment.startAngle + ratio * (segment.endAngle - segment.startAngle);
-}
-
-function angleToValue(angle, segment) {
-    const ratio = (angle - segment.startAngle) / (segment.endAngle - segment.startAngle);
-    return Math.round(ratio * (segment.range[1] - segment.range[0]) + segment.range[0]);
-}
-
-function updateFilterDisplays() {
-    d3.select(".age-text")
-        .text(`${circularFilters.Age.min} - ${circularFilters.Age.max} yrs`);
-
-    d3.select(".weight-text")
-        .text(`${circularFilters.Weight.min} - ${circularFilters.Weight.max} kg`);
 }
 
 updateFilterDisplays();
@@ -1278,85 +1126,68 @@ function drawTreemap(data) {
         .tile(d3.treemapBinary);
     treemap(root);
 
-    const countries = zoomGroup.selectAll(".country")
+    // Top-level group = Outcome
+        const groups = zoomGroup.selectAll(".group")
         .data(root.children)
         .enter()
         .append("g")
-        .attr("class", "country")
+        .attr("class", "group")
         .attr("transform", d => `translate(${d.x0},${d.y0})`);
 
-    countries.append("rect")
+        function focusOutcome(outcomeKey) {
+        // Toggle focus
+        if (selectedOutcome === outcomeKey) {
+            selectedOutcome = null;
+        } else {
+            selectedOutcome = outcomeKey;
+        }
+        updateTreemap();
+        drawLegend();
+        }
+
+        // Header background
+        groups.append("rect")
         .attr("width", d => Math.floor(d.x1 - d.x0))
         .attr("height", d => Math.floor(d.y1 - d.y0))
         .attr("fill", "#ffffff")
         .attr("stroke", "#000000")
         .attr("stroke-width", 0.2)
-        .style("cursor","pointer")
-        .on("mouseover", function() { d3.select(this).attr("fill", "#f0f0f0"); })
-        .on("mouseout", function() { d3.select(this).attr("fill", "#fff"); })
-        .on("click", function(event, d) {
-            if (selectedCountryForFilter === d.data.key) {
-                selectedCountryForFilter = null;
-                const selectedReports = parseInt(reportSlider.value, 10);
-                const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
-                drawTreemap(filteredData);
-            } else {
-                selectedCountryForFilter = d.data.key;
-                const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
-                const selectedReports = parseInt(reportSlider.value, 10);
-                const grouped = groupDataByOutcomeAndProduct(filteredData.slice(0, selectedReports));
-                drawTreemap(grouped);
-            }
-        })
+        .style("cursor", "pointer")
+        .on("click", (event, d) => focusOutcome(d.data.key))
         .append("title")
-        .text(function(d) { return d.data.key; });
+        .text(d => d.data.key);
 
-    countries.append("text")
-        .attr("x", function(d) {
-            return (d.x1 - d.x0) / 2;
-        })
-        .attr("y", function(d) {
+        // Header label
+        groups.append("text")
+        .attr("x", d => (d.x1 - d.x0) / 2)
+        .attr("y", d => {
             const height = d.y1 - d.y0;
-            const paddingTop = Math.min(topPadding, height * 0.05);
+            const paddingTop = Math.min(14, height * 0.05);
             return Math.max(paddingTop / 50, 6);
         })
         .attr("dy", "0.35em")
-        .text(function(d) {
+        .text(d => {
             const width = d.x1 - d.x0;
             const approxCharWidth = 4;
             const maxChars = Math.floor(width / approxCharWidth);
             let text = d.data.key;
-            if (text.length > maxChars) {
-                text = text.slice(0, maxChars - 3) + '...';
-            }
+            if (text.length > maxChars) text = text.slice(0, maxChars - 3) + '...';
             return text;
         })
-        .attr("font-size", function(d) {
+        .attr("font-size", d => {
             const width = d.x1 - d.x0;
             let fontSize = Math.min((width / d.data.key.length) * 1.5, 8);
             fontSize = Math.max(fontSize, 5);
             return fontSize + "px";
         })
         .attr("text-anchor", "middle")
-        .style("cursor","pointer")
-        .on("click", function(event, d) {
-            if (selectedCountryForFilter === d.data.key) {
-                selectedCountryForFilter = null;
-                const selectedReports = parseInt(reportSlider.value, 10);
-                const filteredData = filterDataByReportLimitAndDateRange(originalData, selectedReports, selectedStartDate, selectedEndDate);
-                drawTreemap(filteredData);
-            } else {
-                selectedCountryForFilter = d.data.key;
-                const filteredData = originalData.filter(r => r.ReportCountry === selectedCountryForFilter);
-                const selectedReports = parseInt(reportSlider.value, 10);
-                const grouped = groupDataByOutcomeAndProduct(filteredData.slice(0, selectedReports));
-                drawTreemap(grouped);
-            }
-        })
+        .style("cursor", "pointer")
+        .on("click", (event, d) => focusOutcome(d.data.key))
         .append("title")
-        .text(function(d) { return d.data.key; });
+        .text(d => d.data.key);
 
-    const products = countries.selectAll(".product")
+        // Products remain the same, just bind them to groups instead of countries:
+        const products = groups.selectAll(".product")
         .data(d => d.children)
         .enter()
         .append("g")
@@ -1699,47 +1530,72 @@ function showProductInfo(productData) {
   currentNodesData = nodes;
   currentLinksData = links;
 
-  drawSankeyDiagram(nodes, links);  // will auto-center & scroll correctly
+  drawSankeyDiagram(nodes, links);
 }
 
+function createContainerTooltip(containerSelector) {
+  const host = d3.select(containerSelector);
+  host.selectAll('.sankey-tooltip').remove();
+  return host.append('div')
+    .attr('class', 'tooltip sankey-tooltip')
+    .style('opacity', 0);
+}
+
+function positionInsideHost(tipSel, hostNode, clientX, clientY, offset = {x: 10, y: -28}) {
+  const rect = hostNode.getBoundingClientRect();
+  const left = clientX - rect.left + hostNode.scrollLeft + offset.x;
+  const top  = clientY - rect.top  + hostNode.scrollTop  + offset.y;
+  tipSel.style('left', `${left}px`).style('top', `${top}px`);
+}
+
+function nearestScrollHost(node) {
+  return node.closest?.('.svg-wrap') || node;
+}
 
 
 const internalMargin = { left: 10, right: 100 };
 
 function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container") {
-
-    const container = d3.select(containerSelector);
-
+  const container = d3.select(containerSelector);
   container.selectAll("*").remove();
-    const sankeyWidth  = container.node().clientWidth;
-    const sankeyHeight = container.node().clientHeight;
-  
-    const sankeySvg = container.append("svg")
-    .attr("width","100%")
-    .attr("height","100%")
+
+  const sankeyWidth  = container.node().clientWidth;
+  const sankeyHeight = container.node().clientHeight;
+
+  const sankeyTip = createContainerTooltip(containerSelector);
+  const hostNode = container.node();
+  const scrollHost = nearestScrollHost(hostNode);
+
+  d3.select(scrollHost).on("scroll.sankeyui", () => {
+    sankeyTip.style("opacity", 0);
+    container.selectAll(".detail-box").remove();
+  });
+
+  const sankeySvg = container.append("svg")
+    .attr("width", "100%")
+    .attr("height", "100%")
     .attr("viewBox", `0 0 ${sankeyWidth} ${sankeyHeight}`)
-    .attr("preserveAspectRatio","xMidYMid meet");
-    
-  
-    const g = sankeySvg.append("g");
-  
-    const zoomBehavior = d3.zoom()
-      .scaleExtent([0.5, 5])
-      .on("zoom", ({transform}) => g.attr("transform", transform));
-    sankeySvg.call(zoomBehavior);
-  
-    const sankeyGen = d3.sankey()
-      .nodeWidth(20)
-      .nodePadding(20)
-      .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 6]])
-      .nodeAlign(d3.sankeyCenter);
-  
-        let graph = {
-                    nodes: nodes.map(d => Object.assign({}, d)),
-                    links: links.map(d => Object.assign({}, d))
-                };
-  
-    drawSankeyGraph(graph);
+    .attr("preserveAspectRatio", "xMidYMid meet");
+
+  const g = sankeySvg.append("g");
+
+  const zoomBehavior = d3.zoom()
+    .scaleExtent([0.5, 5])
+    .on("zoom", ({transform}) => g.attr("transform", transform));
+  sankeySvg.call(zoomBehavior);
+
+  const sankeyGen = d3.sankey()
+    .nodeWidth(20)
+    .nodePadding(20)
+    .extent([[internalMargin.left, 1], [sankeyWidth - internalMargin.right, sankeyHeight - 6]])
+    .nodeAlign(d3.sankeyCenter);
+
+  let graph = {
+    nodes: nodes.map(d => Object.assign({}, d)),
+    links: links.map(d => Object.assign({}, d))
+  };
+
+  drawSankeyGraph(graph);
 
     function drawSankeyGraph(graph) {
         sankeySvg.selectAll("*").remove();
@@ -1802,7 +1658,6 @@ function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container"
         const diagramWidth = d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0);
         const diagramGroup = sankeySvg.append("g")
             .attr("transform", `translate(${(sankeyWidth - (d3.max(graph.nodes, d => d.x1) - d3.min(graph.nodes, d => d.x0))) / 2},0)`);
-        drawSankeyElements(diagramGroup, graph);
         drawSankeyElements(diagramGroup, graph);
         if (isToggled) {
             diagramGroup.attr("transform", diagramGroup.attr("transform") + " scale(0.5)");
@@ -1946,36 +1801,31 @@ function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container"
         .attr("d", d3.sankeyLinkHorizontal())
         .attr("fill", "none")
         .attr("stroke", d => {
-            if ((d.source.type === "report_detail" && (d.target.type === "indication" || d.target.type === "reaction")) ||
-                ((d.source.type === "indication" || d.source.type === "reaction") && d.target.type === "report_detail")) {
-                const report = d.source.type === "report_detail" ? d.source.report : d.target.report;
-                const outcome = report.Outcome;
-                return outcomeColors[outcome] || "#87ceeb";
-            } else if (d.source.type === "indication" || d.target.type === "indication") {
-                const indicationName = d.source.type === "indication" ? d.source.name : d.target.name;
-                const count = window.totalIndicationCounts[indicationName] || 0;
-                return indicationColorScale(count);
-            } else if (d.source.type === "reaction" || d.target.type === "reaction") {
-                const reactionName = d.source.type === "reaction" ? d.source.name : d.target.name;
-                const count = window.totalReactionCounts[reactionName] || 0;
-                return reactionColorScale(count);
-            } else {
-                return "#888";
+            if (d.source.type === "indication" || d.target.type === "indication") return "#64c864"; // green-ish
+            if (d.source.type === "reaction"  || d.target.type === "reaction")   return "#ff7d7d"; // red-ish
+            if (d.source.type === "report_detail" || d.target.type === "report_detail") {
+                const outcome = (d.report && d.report.Outcome) || "Other";
+                return (outcomeColors[outcome] || "#999");
             }
+            return "#999";
         })
-        
+
         .attr("stroke-width", d => d.width)
         .attr("opacity", 0.8)
         .on("mouseover", function (event, d) {
-            tooltip.transition().duration(200).style("opacity", 1);
             const reportCount = d.originalValue;
-            tooltip.html(`${reportCount} report${reportCount !== 1 ? 's' : ''}`)
-                .style("left", `${event.pageX + 5}px`)
-                .style("top", `${event.pageY - 28}px`);
+            sankeyTip
+            .style("opacity", 1)
+            .html(`${reportCount} report${reportCount !== 1 ? 's' : ''}`);
+            positionInsideHost(sankeyTip, scrollHost, event.clientX, event.clientY);
+        })
+        .on("mousemove", function (event) {
+            positionInsideHost(sankeyTip, scrollHost, event.clientX, event.clientY);
         })
         .on("mouseout", function () {
-            tooltip.transition().duration(500).style("opacity", 0);
+            sankeyTip.style("opacity", 0);
         });
+
 
     const defs = diagramGroup.append("defs");
 
@@ -2135,14 +1985,15 @@ function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container"
                 return `${fontSize}px`;
             })
             .on("mouseover", function(event, d) {
-                tooltip.transition().duration(200).style("opacity", 1);
-                tooltip.html(`${d.reactionCount} Reactions<br/>${d.indicationCount} Indications`)
-                    .style("left", `${event.pageX + 5}px`)
-                    .style("top", `${event.pageY - 28}px`);
-            })
-            .on("mouseout", function() {
-                tooltip.transition().duration(500).style("opacity", 0);
-            })
+                sankeyTip
+                    .style("opacity", 1)
+                    .html(`${d.reactionCount} Reactions<br/>${d.indicationCount} Indications`);
+                positionInsideHost(sankeyTip, scrollHost, event.clientX, event.clientY);
+                })
+                .on("mousemove", function(event) {
+                positionInsideHost(sankeyTip, scrollHost, event.clientX, event.clientY);
+                })
+                .on("mouseout", function() { sankeyTip.style("opacity", 0); })
             .each(function(nodeData) {
                 const textElem = d3.select(this);
                 const letters = nodeData.name.split("");
@@ -2233,37 +2084,31 @@ function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container"
     }
 
     function showReportDetails(event, d) {
-        d3.selectAll(".detail-box").remove();
-        d3.select("body").on("click.detailBox", null);
-    
-        const margin = 20;
+       
+        container.selectAll(".detail-box").remove();
+
+        
         const boxWidth = 300;
         const boxHeight = 200;
-        const xSpace = 20;
-        const ySpace = 20;
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-    
-        let x = event.clientX + xSpace;
-        let y = event.clientY + ySpace;
-    
-        if (x + boxWidth > viewportWidth) {
-            x = event.clientX - boxWidth - xSpace;
-        }
-    
-        if (y + boxHeight > viewportHeight) {
-            y = event.clientY - boxHeight - ySpace;
-        }
-    
-        if (x < margin) x = margin;
-        if (y < margin) y = margin;
-    
-        const detailBox = d3.select("body")
-            .append("div")
+        const xSpace = 16;
+        const ySpace = 16;
+
+        const hostRect = scrollHost.getBoundingClientRect();
+        let left = event.clientX - hostRect.left + scrollHost.scrollLeft + xSpace;
+        let top  = event.clientY - hostRect.top  + scrollHost.scrollTop  + ySpace;
+
+        const maxLeft = scrollHost.scrollLeft + scrollHost.clientWidth  - boxWidth  - 8;
+        const maxTop  = scrollHost.scrollTop  + scrollHost.clientHeight - boxHeight - 8;
+        left = Math.min(left, maxLeft);
+        top  = Math.min(top,  maxTop);
+        left = Math.max(left, 8);
+        top  = Math.max(top,  8);
+
+        const detailBox = container.append("div")
             .attr("class", "detail-box")
-            .style("position", "fixed")
-            .style("left", `${x}px`)
-            .style("top", `${y}px`)
+            .style("position", "absolute")
+            .style("left", `${left}px`)
+            .style("top", `${top}px`)
             .style("pointer-events", "auto")
             .style("width", `${boxWidth}px`)
             .style("max-height", `${boxHeight}px`)
@@ -2272,73 +2117,44 @@ function drawSankeyDiagram(nodes, links, containerSelector = "#sankey-container"
             .style("border", "1px solid #ccc")
             .style("padding", "10px")
             .style("box-shadow", "0 4px 8px rgba(0,0,0,0.2)")
-            .style("z-index", 1000)
-            .html("");
-    
+            .style("z-index", 1000);
+
         const report = d.report;
-        const medicinalProduct = report.Medicinalproduct || null;
-        const dosage = report.DosageText && report.DosageText !== 'unknown' ? report.DosageText : null;
-        const treatmentDuration = report.TreatmentDuration && report.TreatmentDuration !== 'unknown' ? report.TreatmentDuration : null;
-        const startDate = report.StartDate && report.StartDate !== 'unknown' ? formatDate(report.StartDate) : null;
-        const endDate = report.EndDate && report.EndDate !== 'unknown' ? formatDate(report.EndDate) : null;
-        const indications = splitBySemicolon(report.DrugIndication);
-        const reactions = splitBySemicolon(report.Reactions);
-    
-        let message = "The patient";
-    
-        if (medicinalProduct) {
-            message += ` took <span class="medical-product">${medicinalProduct}</span>`;
-        } else {
-            message += ` did not report a specific medicinal product`;
-        }
-    
-        if (dosage) {
-            message += ` with a dosage of <span class="dosage">${dosage}</span>`;
-        }
-    
-        if (treatmentDuration) {
-            message += ` for a treatment duration of <span class="treatment-duration">${treatmentDuration}</span> days`;
-        }
-    
-        if (startDate && endDate) {
-            message += ` from <span class="start-date">${startDate}</span> to <span class="end-date">${endDate}</span>`;
-        } else if (startDate && !endDate) {
-            message += ` starting on <span class="start-date">${startDate}</span>`;
-        } else if (!startDate && endDate) {
-            message += ` until <span class="end-date">${endDate}</span>`;
-        }
-    
-        if (indications.length > 0) {
-            message += ` for <span class="indications">${indications.join(", ")}</span> Indications`;
-        }
-    
-        if (reactions.length > 0) {
-            message += ` and got <span class="reactions">${reactions.join(", ")}</span> reactions.`;
-        } else {
-            message += ` without any reported reactions.`;
-        }
-    
-        if (indications.length === 0 && reactions.length === 0) {
-            message = message.replace(/ and got .* reactions\./, ".");
-        }
-        if (!message.endsWith(".")) {
-            message += ".";
-        }
-        detailBox.html(message);
-    
-        d3.select("body").on("click.detailBox", function(evt) {
-            if (!detailBox.node().contains(evt.target)) {
-                detailBox.remove();
-                d3.select("body").on("click.detailBox", null);
-                stopAllBeating();
-                updateFadedState();
+        const medicinalProduct   = report.Medicinalproduct || null;
+        const dosage             = report.DosageText && report.DosageText !== 'unknown' ? report.DosageText : null;
+        const treatmentDuration  = report.TreatmentDuration && report.TreatmentDuration !== 'unknown' ? report.TreatmentDuration : null;
+        const startDate          = report.StartDate && report.StartDate !== 'unknown' ? formatDate(report.StartDate) : null;
+        const endDate            = report.EndDate && report.EndDate !== 'unknown' ? formatDate(report.EndDate) : null;
+        const indications        = splitBySemicolon(report.DrugIndication);
+        const reactions          = splitBySemicolon(report.Reactions);
+
+        let msg = "The patient";
+        if (medicinalProduct) msg += ` took <span class="medical-product">${medicinalProduct}</span>`;
+        if (dosage)           msg += ` with a dosage of <span class="dosage">${dosage}</span>`;
+        if (treatmentDuration)msg += ` for a treatment duration of <span class="treatment-duration">${treatmentDuration}</span> days`;
+        if (startDate && endDate) msg += ` from <span class="start-date">${startDate}</span> to <span class="end-date">${endDate}</span>`;
+        else if (startDate)       msg += ` starting on <span class="start-date">${startDate}</span>`;
+        else if (endDate)         msg += ` until <span class="end-date">${endDate}</span>`;
+        if (indications.length)   msg += ` for <span class="indications">${indications.join(", ")}</span> Indications`;
+        if (reactions.length)     msg += ` and got <span class="reactions">${reactions.join(", ")}</span> reactions.`;
+        if (!reactions.length)    msg += ` without any reported reactions.`;
+        if (!msg.endsWith("."))   msg += ".";
+
+        detailBox.html(msg);
+
+        container.on("click.detailBox", function(evt) {
+            const target = evt.target;
+            if (!detailBox.node().contains(target)) {
+            detailBox.remove();
+            container.on("click.detailBox", null);
+            stopAllBeating();
+            updateFadedState();
             }
         });
-    
-        detailBox.on("click", function(event) {
-            event.stopPropagation();
-        });
+
+        detailBox.on("click", function(event) { event.stopPropagation(); });
     }
+
     
 }
 
@@ -2386,21 +2202,20 @@ function updateFadedState() {
 
   document.addEventListener("DOMContentLoaded", function() {
     toggleCountryFilterBtn = document.getElementById('toggle-country-filter-btn');
-    countryFilterMessage = document.getElementById('country-filter-message');
+        countryFilterMessage = document.getElementById('country-filter-message');
 
-    toggleCountryFilterBtn.addEventListener('click', function() {
-        if (!currentProductData) {
+        if (toggleCountryFilterBtn) {
+        toggleCountryFilterBtn.addEventListener('click', function () {
+            if (!currentProductData) {
             alert('Please select a medicinal product first.');
             return;
+            }
+            isCountryFilterActive = !isCountryFilterActive;
+            toggleCountryFilterBtn.textContent = isCountryFilterActive ? 'Country Specific' : 'Global Data';
+            showProductInfo(currentProductData);
+        });
         }
-        isCountryFilterActive = !isCountryFilterActive;
-        if (isCountryFilterActive) {
-            toggleCountryFilterBtn.textContent = 'Country Specific';
-        } else {
-            toggleCountryFilterBtn.textContent = 'Global Data';
-        }
-        showProductInfo(currentProductData);
-    });
+
 
     const toggleBtn = document.getElementById('toggle-structure-btn');
     const structureBox = document.getElementById('structure-box');
@@ -2635,8 +2450,6 @@ const addCompareBtn = document.getElementById('add-compare-btn');
 const compareNotice = document.getElementById('compare-notice');
 const multiSankeyContainer = document.getElementById('multi-sankey-container');
 
-// Toggle compare mode on button click
-// Toggle compare mode on button click
 addCompareBtn.addEventListener('click', () => {
   isMultiMode = !isMultiMode;
 
@@ -2650,16 +2463,12 @@ addCompareBtn.addEventListener('click', () => {
   const single = document.getElementById('sankey-container');
 
   if (isMultiMode) {
-    // Hide single-view and clear it to make space
     d3.select('#sankey-container').html('');
     single.style.display = 'none';
-    // Seed with the current selection (if any)
     if (multiProducts.length === 0 && currentProductData) addMultiSankey(currentProductData);
   } else {
-    // Leaving compare: remove all compare panels
     multiProducts.length = 0;
     multiSankeyContainer.innerHTML = '';
-    // Restore single-view container
     single.style.display = '';
   }
 });
